@@ -248,19 +248,21 @@ public class MainActivity extends FragmentActivity implements
 
         ArrayList<String> l2 = mydb.getAllPointsActivity();
         ArrayList<String> l3 = mydb.getAllPointsTime();
-        if (l2.size() > 1) {
+        if (!l2.isEmpty()) {
+            if (l2.size() > 1) {
 
-            for(int i=1; i<100; i++){
-                System.out.println((l2.get(l2.size() - i)) + "  " +(l3.get(l3.size() - i)));
+                for (int i = 1; i < 100; i++) {
+                    System.out.println((l2.get(l2.size() - i)) + "  " + (l3.get(l3.size() - i)));
+                }
+            } else {
+                System.out.println("List is empty or bigger than one");
             }
-        } else {
-            System.out.println("List is empty or bigger than one");
         }
     }
 
     @Override
     public void onDestroy(){
-        super.onDestroy();
+            super.onDestroy();
         mydb.close();
     }
 
@@ -558,12 +560,14 @@ public class MainActivity extends FragmentActivity implements
     private void addHeatMap(GoogleMap map) {
 
         ArrayList<LatLng> list = mydb.getAllPoints();
-        // Create a heat map tile provider, passing it the latlngs of the police stations.
-        HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
+        if (!list.isEmpty()) {
+            // Create a heat map tile provider, passing it the latlngs of the police stations.
+            HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
                 .data(list)
                 .build();
-        // Add a tile overlay to the map, using the heat map tile provider.
-        TileOverlay mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+            // Add a tile overlay to the map, using the heat map tile provider.
+            TileOverlay mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+        }
     }
 
 
