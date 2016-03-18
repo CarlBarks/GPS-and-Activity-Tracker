@@ -43,7 +43,7 @@ public class DBHelper extends SQLiteOpenHelper {
         }*/
         //if not exists
         db.execSQL(
-                "create table TRACKPOINTS if not exists" +
+                "create table TRACKPOINTS if not exists " +
                         "(id integer primary key, lat double,lon double,time text, activity text)"
         );
     }
