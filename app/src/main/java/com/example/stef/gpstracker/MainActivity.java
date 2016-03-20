@@ -249,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements
                         if (mOverlay_foot!=null){
                             mOverlay_foot.remove();
                         }
+
                     }
                     else{
                         text="You have no bike activity recorded yet!";
@@ -316,6 +317,7 @@ public class MainActivity extends AppCompatActivity implements
                         mProvider_foot.setGradient(gradient_foot);
                         mProvider_foot.setData(list_foot);
                         mOverlay_foot.clearTileCache();
+
                     } else {
                         text=text+"You have no walking or running activity recorded yet!";
                     }
