@@ -125,6 +125,7 @@ public class MainActivity extends AppCompatActivity implements
     private FloatingActionButton fab_foot;
     private FloatingActionButton fab_all;
 
+    private String mode="All";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -211,6 +212,7 @@ public class MainActivity extends AppCompatActivity implements
                         if (mOverlay_foot!=null){
                             mOverlay_foot.remove();
                         }
+                        mode="Vehicle";
                     }
                     else{
                         text="You have no vehicle activity recorded yet!";
@@ -244,6 +246,8 @@ public class MainActivity extends AppCompatActivity implements
                             mOverlay_foot.remove();
                         }
 
+                        mode="Bike";
+
                     }
                     else{
                         text="You have no bike activity recorded yet!";
@@ -276,6 +280,8 @@ public class MainActivity extends AppCompatActivity implements
                         if (mOverlay_vehicle!=null){
                             mOverlay_vehicle.remove();
                         }
+
+                        mode="Foot";
                     }
                     else{
                         text="You have no walking or running activity recorded yet!";
@@ -283,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements
                     break;
                 case R.id.menu_item_all:
 
-                    ArrayList<LatLng> list_foot = mydb.getAllOnFoot();
+                    /*ArrayList<LatLng> list_foot = mydb.getAllOnFoot();
                     ArrayList<LatLng> list_vehicles = mydb.getAllVehicles();
                     ArrayList<LatLng> list_bike = mydb.getAllOnBike();
 
@@ -373,6 +379,40 @@ public class MainActivity extends AppCompatActivity implements
                     }
                     else{
                         text=text+"You have no vehicle activity recorded yet!";
+                    }*/
+                    ArrayList<LatLng> list_all = mydb.getAllPoints();
+                    if (!list_all.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_all = {
+                                Color.rgb(102, 225, 0), // green
+                                Color.rgb(255, 0, 0)    // red
+                        };
+
+                        float[] startPoints_all = {
+                                0.2f, 1f
+                        };
+
+                        Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                        mProvider.setGradient(gradient_all);
+
+                        mProvider.setData(list_all);
+                        mOverlay.clearTileCache();
+
+                        if (mOverlay_bike!=null){
+                            mOverlay_bike.remove();
+                        }
+                        if (mOverlay_vehicle!=null){
+                            mOverlay_vehicle.remove();
+                        }
+                        if (mOverlay_foot!=null){
+                            mOverlay_foot.remove();
+                        }
+                        mode="All";
+
+                    }else{
+                        text=text+"You have no points recorded yet!";
                     }
                     break;
             }
@@ -418,6 +458,7 @@ public class MainActivity extends AppCompatActivity implements
             savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mTimeOfLastLocationEvent);
         }
         savedInstanceState.putString(Constants.DETECTED_ACTIVITIES, activity_type);
+        savedInstanceState.putString("mode", mode);
         super.onSaveInstanceState(savedInstanceState);
     }
 
@@ -444,7 +485,7 @@ public class MainActivity extends AppCompatActivity implements
             // UI to show the correct latitude and longitude.
             if (savedInstanceState.keySet().contains(LOCATION_KEY)) {
                 // Since LOCATION_KEY was found in the Bundle, we can be sure that
-                // mCurrentLocationis not null.
+                // mCurrentLocation is not null.
                 mCurrentLocation = savedInstanceState.getParcelable(LOCATION_KEY);
             }
 
@@ -452,6 +493,12 @@ public class MainActivity extends AppCompatActivity implements
             if (savedInstanceState.keySet().contains(LAST_UPDATED_TIME_STRING_KEY)) {
                 mTimeOfLastLocationEvent = savedInstanceState.getLong(
                         LAST_UPDATED_TIME_STRING_KEY);
+            }
+
+            if (savedInstanceState != null ) {
+                mode = savedInstanceState.getString("mode");
+            } else {
+                mode = "All";
             }
             //updateUI();
         }
@@ -815,13 +862,86 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void addHeatMap(GoogleMap map) {
+        ArrayList<LatLng> list = new ArrayList<LatLng>();
+        Gradient gradient = null;
+        //System.out.println("mode= "+mode);
 
-        ArrayList<LatLng> list = mydb.getAllPoints();
+        switch (mode){
+            case "All": {
+                list = mydb.getAllPoints();
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                gradient = new Gradient(colors_all, startPoints_all);
+                break;
+            }
+            case "Vehicle": {
+                list = mydb.getAllVehicles();
+                // Create the gradient.
+                int[] colors_vehicle = {
+                        Color.rgb(190,60,125),
+                        Color.rgb(86,16,80),
+                        Color.rgb(53,1,63)
+                };
+
+                float[] startPoints_vehicle = {
+                        0.2f, 0.8f, 1f
+                };
+
+                gradient = new Gradient(colors_vehicle, startPoints_vehicle);
+                break;
+            }
+            case "Bike": {
+                list = mydb.getAllOnBike();
+                // Create the gradient.
+                int[] colors_bike = {
+                        Color.rgb(58,163,193),
+                        Color.rgb(40,57,150),
+                        Color.rgb(38,9,128)
+                };
+
+                float[] startPoints_bike = {
+                        0.2f, 0.8f, 1f
+                };
+
+                gradient = new Gradient(colors_bike, startPoints_bike);
+
+                break;
+            }
+            case "Foot": {
+                list = mydb.getAllOnFoot();
+                // Create the gradient.
+                int[] colors_foot = {
+                        Color.rgb(239,172,42),
+                        Color.rgb(245,130,125),
+                        Color.rgb(250,70,60)
+                };
+
+                float[] startPoints_foot = {
+                        0.2f, 0.6f, 1f
+                };
+
+                gradient = new Gradient(colors_foot, startPoints_foot);
+                break;
+            }
+        }
+
         if (!list.isEmpty()) {
             // Create a heat map tile provider, passing it the latlngs of the police stations.
             mProvider = new HeatmapTileProvider.Builder()
                 .data(list)
                 .build();
+            if (gradient!=null){
+                mProvider.setGradient(gradient);
+            }
             // Add a tile overlay to the map, using the heat map tile provider.
             mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
         }
@@ -850,7 +970,7 @@ public class MainActivity extends AppCompatActivity implements
             } else {
                 updatedActivity= extras.getParcelable(Constants.ACTIVITY_EXTRA);
                 int confidence = updatedActivity.getConfidence();
-                if (confidence>50){
+                if (confidence>70){
                     mLastactivity_type=activity_type;
                     activity_type = Constants.getActivityString(context, updatedActivity.getType());
                     System.out.println(activity_type);
@@ -895,8 +1015,6 @@ public class MainActivity extends AppCompatActivity implements
                     updateLocationRequest(30000);
                 }
             }
-
-            //updateDetectedActivitiesList(updatedActivities);
         }
     }
 
@@ -926,83 +1044,6 @@ public class MainActivity extends AppCompatActivity implements
         // requestActivityUpdates() and removeActivityUpdates().
         return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
-
-    /*public void JSONFileWrite() {
-
-        JSONObject obj = new JSONObject();
-        try {
-            obj.put("lat", lat);
-            obj.put("lon", lon);
-            obj.put("time",mLastUpdateTime);
-
-            JSONArray trackpoints = new JSONArray();
-            trackpoints.put(obj);
-
-            String s = trackpoints.toString();
-            WriteToFile(s);
-        }
-        catch (JSONException e) {
-            //
-        }
-    }*/
-
-    /*private ArrayList<LatLng> readItems(int resource) throws JSONException {
-        ArrayList<LatLng> list = new ArrayList<LatLng>();
-        InputStream inputStream = getResources().openRawResource(resource);
-        String json = new Scanner(inputStream).useDelimiter("\\A").next();
-        JSONArray array = new JSONArray(json);
-        for (int i = 0; i < array.length(); i++) {
-            JSONObject object = array.getJSONObject(i);
-            double lat = object.getDouble("lat");
-            double lng = object.getDouble("lng");
-            list.add(new LatLng(lat, lng));
-        }
-        return list;
-
-    }*/
-
-    /* Checks if external storage is available for read and write */
-    /*public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
-    }*/
-
-    /*Method responsible for writing data to .txt file*/
-    /*public void WriteToFile(String s) {
-        if (isExternalStorageWritable()) {
-            try {
-                File newFolder = new File(Environment.getExternalStorageDirectory(), "GPSTracker");
-                if (!newFolder.exists()) {
-                    newFolder.mkdir();
-                }
-                try {
-                    File file = new File(newFolder, "Data" + ".json");
-                    if (!file.exists()) {
-                        file.createNewFile();
-                    }
-                    try {
-                        FileOutputStream fOut = new FileOutputStream(file, true);
-                        OutputStreamWriter myOutWriter =
-                                new OutputStreamWriter(fOut);
-                        myOutWriter.append(s);
-                        myOutWriter.close();
-                        fOut.close();
-                    } catch (Exception ex) {
-                        System.out.println("ex: " + ex);
-                    }
-
-                } catch (Exception e) {
-                    System.out.println("e: " + e);
-                }
-            } catch (Exception e) {
-                System.out.println("e: " + e);
-            }
-
-        }
-    }*/
 
 }
 
