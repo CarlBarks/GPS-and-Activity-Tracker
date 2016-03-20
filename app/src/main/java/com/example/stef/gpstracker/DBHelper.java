@@ -3,6 +3,7 @@ package com.example.stef.gpstracker;
 /**
  * Created by Stef on 9/3/2016.
  */
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -25,27 +26,27 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String TRACKPOINTS_COLUMN_TIME = "time";
     public static final String TRACKPOINTS_COLUMN_ACTIVITY= "activity";
     private HashMap hp;
+    // variable to hold context
+    private Context context;
 
     public DBHelper(Context context)
     {
         super(context, DATABASE_NAME , null, 1);
+        this.context=context;
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        /*File database = getActivity().getApplicationContext().getDatabasePath("databasename.db");
+
+        File database = context.getDatabasePath("MyDBName.db");
 
         if (!database.exists()) {
-            // Database does not exist so copy it from assets here
-            Log.i("Database", "Not Found");
-        } else {
-            Log.i("Database", "Found");
-        }*/
-        //if not exists
-        db.execSQL(
-                "create table TRACKPOINTS if not exists " +
-                        "(id integer primary key, lat double,lon double,time text, activity text)"
-        );
+            //if not exists
+            db.execSQL(
+                    "create table TRACKPOINTS if not exists " +
+                            "(id integer primary key, lat double, lon double, time text, activity text)"
+            );
+        }
     }
 
     @Override

@@ -1,14 +1,9 @@
 package com.example.stef.gpstracker;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.database.DatabaseUtils;
 import android.graphics.Color;
 import android.os.Build;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -24,7 +19,6 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 
-import android.support.v4.app.FragmentActivity;
 import android.location.Location;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
