@@ -43,7 +43,7 @@ public class DBHelper extends SQLiteOpenHelper {
         if (!database.exists()) {
             //if not exists
             db.execSQL(
-                    "create table TRACKPOINTS if not exists " +
+                    "create table TRACKPOINTS " +
                             "(id integer primary key, lat double, lon double, time text, activity text)"
             );
         }
@@ -117,6 +117,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(pair);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
@@ -134,6 +135,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(activity);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
@@ -151,6 +153,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(timestamp);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
@@ -170,6 +173,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(pair);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
@@ -189,6 +193,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(pair);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
@@ -208,6 +213,7 @@ public class DBHelper extends SQLiteOpenHelper {
             array_list.add(pair);
             res.moveToNext();
         }
+        res.close();
         return array_list;
     }
 
