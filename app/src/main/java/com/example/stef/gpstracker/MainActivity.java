@@ -6,11 +6,14 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import com.github.clans.fab.FloatingActionButton;
+import com.github.clans.fab.FloatingActionMenu;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
@@ -25,6 +28,7 @@ import android.support.v4.app.FragmentActivity;
 import android.location.Location;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import org.json.JSONArray;
@@ -48,6 +52,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
+import com.google.maps.android.heatmaps.Gradient;
 import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import android.app.PendingIntent;
@@ -65,12 +70,20 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.DetectedActivity;
 
-public class MainActivity extends FragmentActivity implements
+public class MainActivity extends AppCompatActivity implements
         ConnectionCallbacks, OnConnectionFailedListener, LocationListener, OnMapReadyCallback, ResultCallback<Status>{
 
     protected static final String TAG = "MainActivity";
 
     private GoogleMap mMap;
+    private HeatmapTileProvider mProvider;
+    private TileOverlay mOverlay;
+    private HeatmapTileProvider mProvider_vehicle;
+    private TileOverlay mOverlay_vehicle;
+    private HeatmapTileProvider mProvider_bike;
+    private TileOverlay mOverlay_bike;
+    private HeatmapTileProvider mProvider_foot;
+    private TileOverlay mOverlay_foot;
 
     private String activity_type="Uninitialized";
     private String mLastactivity_type="Uninitialized";
@@ -113,12 +126,52 @@ public class MainActivity extends FragmentActivity implements
     /* Stores parameters for requests to the FusedLocationProviderApi.*/
     protected LocationRequest mLocationRequest;
 
+    private FloatingActionButton fab_vehicle;
+    private FloatingActionButton fab_bike;
+    private FloatingActionButton fab_foot;
+    private FloatingActionButton fab_all;
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_main);
         setContentView(R.layout.activity_maps);
+
+        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        final FloatingActionMenu menu = (FloatingActionMenu) findViewById(R.id.menu);
+
+        menu.setOnMenuButtonClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                menu.toggle(true);
+            }
+        });
+
+        menu.setOnMenuToggleListener(new FloatingActionMenu.OnMenuToggleListener() {
+            @Override
+            public void onMenuToggle(boolean opened) {
+                String text = "";
+                if (opened) {
+                    text = "Menu opened";
+                } else {
+                    text = "Menu closed";
+                }
+                //A toast message when opening - closing the menu
+                //Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        fab_vehicle = (FloatingActionButton) findViewById(R.id.menu_item_vehicle);
+        fab_bike = (FloatingActionButton) findViewById(R.id.menu_item_bike);
+        fab_foot = (FloatingActionButton) findViewById(R.id.menu_item_foot);
+        fab_all = (FloatingActionButton) findViewById(R.id.menu_item_all);
+
+        fab_vehicle.setOnClickListener(clickListener);
+        fab_bike.setOnClickListener(clickListener);
+        fab_foot.setOnClickListener(clickListener);
+        fab_all.setOnClickListener(clickListener);
 
         updateValuesFromBundle(savedInstanceState);
 
@@ -130,6 +183,209 @@ public class MainActivity extends FragmentActivity implements
         buildGoogleApiClient();
 
     }
+
+    private View.OnClickListener clickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            String text = "";
+
+            switch (v.getId()) {
+                case R.id.menu_item_vehicle:
+                    ArrayList<LatLng> list = mydb.getAllVehicles();
+                    if (!list.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_vehicle = {
+                                Color.rgb(190,60,125),
+                                Color.rgb(86,16,80),
+                                Color.rgb(53,1,63)
+                        };
+
+                        float[] startPoints_vehicle = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        Gradient gradient_vehicle = new Gradient(colors_vehicle, startPoints_vehicle);
+
+                        mProvider.setGradient(gradient_vehicle);
+
+                        mProvider.setData(list);
+                        mOverlay.clearTileCache();
+                        if (mOverlay_bike!=null){
+                            mOverlay_bike.remove();
+                        }
+                        if (mOverlay_foot!=null){
+                            mOverlay_foot.remove();
+                        }
+                    }
+                    else{
+                        text="You have no vehicle activity recorded yet!";
+                    }
+                    break;
+                case R.id.menu_item_bike:
+                    ArrayList<LatLng> list2 = mydb.getAllOnBike();
+                    if (!list2.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_bike = {
+                                Color.rgb(58,163,193),
+                                Color.rgb(40,57,150),
+                                Color.rgb(38,9,128)
+                        };
+
+                        float[] startPoints_bike = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        Gradient gradient_bike = new Gradient(colors_bike, startPoints_bike);
+
+                        mProvider.setData(list2);
+                        mProvider.setGradient(gradient_bike);
+                        mOverlay.clearTileCache();
+
+                        if (mOverlay_vehicle!=null){
+                            mOverlay_vehicle.remove();
+                        }
+                        if (mOverlay_foot!=null){
+                            mOverlay_foot.remove();
+                        }
+                    }
+                    else{
+                        text="You have no bike activity recorded yet!";
+                    }
+                    break;
+                case R.id.menu_item_foot:
+                    ArrayList<LatLng> list3 = mydb.getAllOnFoot();
+                    if (!list3.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_foot = {
+                                Color.rgb(239,172,42),
+                                Color.rgb(245,130,125),
+                                Color.rgb(250,70,60)
+                        };
+
+                        float[] startPoints_foot = {
+                                0.2f, 0.6f, 1f
+                        };
+
+                        Gradient gradient_foot = new Gradient(colors_foot, startPoints_foot);
+
+                        mProvider.setGradient(gradient_foot);
+                        mProvider.setData(list3);
+                        mOverlay.clearTileCache();
+
+                        if (mOverlay_bike!=null){
+                            mOverlay_bike.remove();
+                        }
+                        if (mOverlay_vehicle!=null){
+                            mOverlay_vehicle.remove();
+                        }
+                    }
+                    else{
+                        text="You have no walking or running activity recorded yet!";
+                    }
+                    break;
+                case R.id.menu_item_all:
+
+                    ArrayList<LatLng> list_foot = mydb.getAllOnFoot();
+                    ArrayList<LatLng> list_vehicles = mydb.getAllVehicles();
+                    ArrayList<LatLng> list_bike = mydb.getAllOnBike();
+
+                    if (!list_foot.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_foot = {
+                                Color.rgb(239,172,42),
+                                Color.rgb(245,130,125),
+                                Color.rgb(250,70,60)
+                        };
+
+                        float[] startPoints_foot = {
+                                0.2f, 0.6f, 1f
+                        };
+
+                        mProvider_foot = new HeatmapTileProvider.Builder()
+                                .data(list_foot)
+                                .build();
+                        // Add a tile overlay to the map, using the heat map tile provider.
+                        mOverlay_foot = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_foot));
+
+                        Gradient gradient_foot = new Gradient(colors_foot, startPoints_foot);
+
+                        mProvider_foot.setGradient(gradient_foot);
+                        mProvider_foot.setData(list_foot);
+                        mOverlay_foot.clearTileCache();
+                    } else {
+                        text=text+"You have no walking or running activity recorded yet!";
+                    }
+
+                    if (!list_bike.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_bike = {
+                                Color.rgb(58,163,193),
+                                Color.rgb(40,57,150),
+                                Color.rgb(38,9,128)
+                        };
+
+                        float[] startPoints_bike = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        mProvider_bike = new HeatmapTileProvider.Builder()
+                                .data(list_bike)
+                                .build();
+                        // Add a tile overlay to the map, using the heat map tile provider.
+                        mOverlay_bike = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_bike));
+
+                        Gradient gradient_bike = new Gradient(colors_bike, startPoints_bike);
+
+                        mProvider_bike.setData(list_bike);
+                        mProvider_bike.setGradient(gradient_bike);
+                        mOverlay_bike.clearTileCache();
+                    }
+                    else{
+                        text=text+"You have no bike activity recorded yet!";
+                    }
+
+                    if (!list_vehicles.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_vehicle = {
+                                Color.rgb(190,60,125),
+                                Color.rgb(86,16,80),
+                                Color.rgb(53,1,63)
+                        };
+
+                        float[] startPoints_vehicle = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        mProvider_vehicle = new HeatmapTileProvider.Builder()
+                                .data(list_vehicles)
+                                .build();
+                        // Add a tile overlay to the map, using the heat map tile provider.
+                        mOverlay_vehicle = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_vehicle));
+
+                        Gradient gradient_vehicle = new Gradient(colors_vehicle, startPoints_vehicle);
+
+                        mProvider_vehicle.setGradient(gradient_vehicle);
+
+                        mProvider_vehicle.setData(list_vehicles);
+                        mOverlay_vehicle.clearTileCache();
+                    }
+                    else{
+                        text=text+"You have no vehicle activity recorded yet!";
+                    }
+                    break;
+            }
+
+            if (!text.equals("")){
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+        }
+    };
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
@@ -159,7 +415,12 @@ public class MainActivity extends FragmentActivity implements
         savedInstanceState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
                 true);
         savedInstanceState.putParcelable(LOCATION_KEY, mCurrentLocation);
-        savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mCurrentLocation.getTime());
+        try{
+            savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mCurrentLocation.getTime());
+        }
+        catch (NullPointerException e){
+            savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mTimeOfLastLocationEvent);
+        }
         savedInstanceState.putString(Constants.DETECTED_ACTIVITIES, activity_type);
         super.onSaveInstanceState(savedInstanceState);
     }
@@ -562,11 +823,11 @@ public class MainActivity extends FragmentActivity implements
         ArrayList<LatLng> list = mydb.getAllPoints();
         if (!list.isEmpty()) {
             // Create a heat map tile provider, passing it the latlngs of the police stations.
-            HeatmapTileProvider mProvider = new HeatmapTileProvider.Builder()
+            mProvider = new HeatmapTileProvider.Builder()
                 .data(list)
                 .build();
             // Add a tile overlay to the map, using the heat map tile provider.
-            TileOverlay mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+            mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
         }
     }
 

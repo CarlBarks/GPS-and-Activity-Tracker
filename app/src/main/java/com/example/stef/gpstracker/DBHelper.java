@@ -153,4 +153,61 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
+    public ArrayList<LatLng> getAllVehicles(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'In a vehicle'", null );
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        return array_list;
+    }
+
+    public ArrayList<LatLng> getAllOnFoot(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On foot'", null );
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        return array_list;
+    }
+
+    public ArrayList<LatLng> getAllOnBike(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On a bike'", null );
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        return array_list;
+    }
+
 }
