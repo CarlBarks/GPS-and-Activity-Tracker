@@ -29,16 +29,19 @@ public class DBHelper extends SQLiteOpenHelper {
     // variable to hold context
     private Context context;
 
+    private SQLiteDatabase db;
+
     public DBHelper(Context context)
     {
         super(context, DATABASE_NAME , null, 1);
         this.context=context;
+        db = getWritableDatabase();
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
 
-        File database = context.getDatabasePath("MyDBName.db");
+        File database = context.getDatabasePath(DATABASE_NAME);
 
         if (!database.exists()) {
             //if not exists
