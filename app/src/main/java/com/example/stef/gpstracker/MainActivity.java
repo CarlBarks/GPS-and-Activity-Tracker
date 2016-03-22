@@ -553,13 +553,13 @@ public class MainActivity extends AppCompatActivity implements
         ArrayList<String> l2 = mydb.getAllPointsActivity();
         ArrayList<String> l3 = mydb.getAllPointsTime();
         if (!l2.isEmpty()) {
-            if (l2.size() > 1) {
+            if (l2.size() > 100) {
 
                 for (int i = 1; i < 100; i++) {
                     System.out.println((l2.get(l2.size() - i)) + "  " + (l3.get(l3.size() - i)));
                 }
             } else {
-                System.out.println("List is empty or bigger than one");
+                System.out.println("List is empty or smaller than 100");
             }
         }
     }
