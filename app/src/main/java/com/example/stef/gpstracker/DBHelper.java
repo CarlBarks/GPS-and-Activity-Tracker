@@ -35,21 +35,15 @@ public class DBHelper extends SQLiteOpenHelper {
     {
         super(context, DATABASE_NAME , null, 1);
         this.context=context;
-        db = getWritableDatabase();
+        //db = getWritableDatabase();
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-
-        File database = context.getDatabasePath(DATABASE_NAME);
-
-        if (!database.exists()) {
-            //if not exists
-            db.execSQL(
-                    "create table TRACKPOINTS " +
-                            "(id integer primary key, lat double, lon double, time text, activity text)"
-            );
-        }
+        db.execSQL(
+                "CREATE TABLE IF NOT EXISTS TRACKPOINTS " +
+                        "(id integer primary key, lat double, lon double, time text, activity text)"
+        );
     }
 
     @Override
