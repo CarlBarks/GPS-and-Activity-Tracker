@@ -27,5 +27,11 @@
     <string name="activity_updates_removed">Activity updates removed</string>
 
     <string name="not_connected">GoogleApiClient not yet connected. Try again.</string>
+    <string name="title_activity_menu_slider">MenuSlider</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="action_settings">Settings</string>
 
 </resources>
