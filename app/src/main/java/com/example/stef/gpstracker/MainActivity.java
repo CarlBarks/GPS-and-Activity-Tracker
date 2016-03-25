@@ -175,6 +175,9 @@ public class MainActivity extends AppCompatActivity implements
         // Get a receiver for broadcasts from ActivityDetectionIntentService.
         mBroadcastReceiver = new ActivityDetectionBroadcastReceiver();
 
+        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                new IntentFilter(Constants.BROADCAST_ACTION));
+
         buildGoogleApiClient();
 
     }
@@ -959,10 +962,11 @@ public class MainActivity extends AppCompatActivity implements
 
         @Override
         public void onReceive(Context context, Intent intent) {
-
+            System.out.println("Received the intent");
             DetectedActivity updatedActivity;
             Bundle extras =
                     intent.getExtras();
+            System.out.println("Received the intent with extras:" + extras);
             if(extras == null) {
                 updatedActivity= null;
                 mLastactivity_type=activity_type;
@@ -970,7 +974,7 @@ public class MainActivity extends AppCompatActivity implements
             } else {
                 updatedActivity= extras.getParcelable(Constants.ACTIVITY_EXTRA);
                 int confidence = updatedActivity.getConfidence();
-                if (confidence>70){
+                if (confidence>60){
                     mLastactivity_type=activity_type;
                     activity_type = Constants.getActivityString(context, updatedActivity.getType());
                     System.out.println(activity_type);
@@ -1000,11 +1004,11 @@ public class MainActivity extends AppCompatActivity implements
                             break;
                         }
                         case DetectedActivity.WALKING: {
-                            updateLocationRequest(30000);
+                            updateLocationRequest(20000);
                             break;
                         }
                         case DetectedActivity.UNKNOWN: {
-                            updateLocationRequest(30000);
+                            updateLocationRequest(20000);
                             break;
                         }
                     }

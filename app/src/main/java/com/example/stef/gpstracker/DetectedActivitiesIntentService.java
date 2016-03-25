@@ -64,6 +64,8 @@ public class DetectedActivitiesIntentService extends IntentService {
 
         DetectedActivity mostProbableActivity = result.getMostProbableActivity();
 
+        System.out.println("activity service:" + mostProbableActivity);
+
         // Get the confidence % (probability)
         int confidence = mostProbableActivity.getConfidence();
 
