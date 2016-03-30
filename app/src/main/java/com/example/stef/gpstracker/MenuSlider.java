@@ -90,45 +90,8 @@ public class MenuSlider extends AppCompatActivity
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-        String text = "";
         if (id == R.id.nav_camera) {
             // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-            ArrayList<LatLng> list = mydb.getAllVehicles();
-            if (!list.isEmpty()) {
-
-                // Create the gradient.
-                int[] colors_vehicle = {
-                        Color.rgb(190, 60, 125),
-                        Color.rgb(86,16,80),
-                        Color.rgb(53,1,63)
-                };
-
-                float[] startPoints_vehicle = {
-                        0.2f, 0.8f, 1f
-                };
-
-                Gradient gradient_vehicle = new Gradient(colors_vehicle, startPoints_vehicle);
-
-                mProvider.setGradient(gradient_vehicle);
-
-                mProvider.setData(list);
-                mOverlay.clearTileCache();
-
-                mode="Vehicle";
-            }
-            else{
-                text="You have no vehicle activity recorded yet!";
-            }
-
-
-        } else if (id == R.id.nav_slideshow) {
-            System.out.println("nothing to display");
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
 
         }
 

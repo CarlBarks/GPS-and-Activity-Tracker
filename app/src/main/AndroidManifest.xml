@@ -34,11 +34,6 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCU8vD0-LUliNVkk5Y_w0NfGs046tJy21g" />
-
-        <activity
-            android:name=".MenuSlider"
-            android:label="@string/title_activity_menu_slider"
-            android:theme="@style/MyMaterialTheme"></activity>
     </application>
 
 </manifest>
