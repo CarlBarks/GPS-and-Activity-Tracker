@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_main);
-        setContentView(R.layout.activity_maps);
+        setContentView(R.layout.activity_menu_slider);
 
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
