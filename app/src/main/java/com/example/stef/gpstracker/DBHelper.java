@@ -4,8 +4,15 @@ package com.example.stef.gpstracker;
  * Created by Stef on 9/3/2016.
  */
 import java.io.File;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -199,7 +206,7 @@ public class DBHelper extends SQLiteOpenHelper {
         ArrayList<LatLng> array_list = new ArrayList<LatLng>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On a bike'", null );
+        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On a bicycle'", null );
         res.moveToFirst();
 
         while(res.isAfterLast() == false){
@@ -213,5 +220,150 @@ public class DBHelper extends SQLiteOpenHelper {
         res.close();
         return array_list;
     }
+
+    public ArrayList<LatLng> getAllPointsToday()
+    {
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        //hp = new HashMap();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
+        //SimpleDateFormat df = new SimpleDateFormat("dd MMM yyyy HH:mm:ss aa");
+        /*try{
+            Date date = df.parse(nowAsString);
+            long epoch = date.getTime();
+            System.out.println(nowAsString+"   " + epoch); // 1055545912454
+        }catch (ParseException e){
+            System.out.println(e);
+        }*/
+
+
+        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        // Create a Pattern object
+        Pattern r = Pattern.compile(pattern);
+        // Now create matcher object.
+        Matcher m = r.matcher(nowAsString);
+        String today_date="";
+        if (m.find( )) {
+            today_date = m.group(0);
+        }
+
+        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where time LIKE '%"+today_date+"%'", null );
+
+        //Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        res.close();
+        return array_list;
+    }
+
+    public ArrayList<LatLng> getAllVehiclesToday(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
+        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        // Create a Pattern object
+        Pattern r = Pattern.compile(pattern);
+        // Now create matcher object.
+        Matcher m = r.matcher(nowAsString);
+        String today_date="";
+        if (m.find( )) {
+            today_date = m.group(0);
+        }
+
+        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'In a vehicle'", null);
+
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        res.close();
+        return array_list;
+    }
+
+    public ArrayList<LatLng> getAllOnBikeToday(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
+        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        // Create a Pattern object
+        Pattern r = Pattern.compile(pattern);
+        // Now create matcher object.
+        Matcher m = r.matcher(nowAsString);
+        String today_date="";
+        if (m.find( )) {
+            today_date = m.group(0);
+        }
+
+        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'On a bicycle'", null);
+
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        res.close();
+        return array_list;
+    }
+
+    public ArrayList<LatLng> getAllOnFootToday(){
+
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
+        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        // Create a Pattern object
+        Pattern r = Pattern.compile(pattern);
+        // Now create matcher object.
+        Matcher m = r.matcher(nowAsString);
+        String today_date="";
+        if (m.find( )) {
+            today_date = m.group(0);
+        }
+
+        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'On foot'", null);
+
+        res.moveToFirst();
+
+        while(res.isAfterLast() == false){
+
+            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            LatLng pair = new LatLng(lati, lngi);
+            array_list.add(pair);
+            res.moveToNext();
+        }
+        res.close();
+        return array_list;
+    }
+
 
 }

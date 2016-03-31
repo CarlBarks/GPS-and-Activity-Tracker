@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Build;
+import android.support.design.widget.NavigationView;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -22,6 +23,8 @@ import com.google.android.gms.maps.model.LatLng;
 import android.location.Location;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
@@ -34,9 +37,14 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -64,8 +72,19 @@ import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.DetectedActivity;
 
+import android.graphics.Color;
+import android.os.Bundle;
+import android.support.design.widget.Snackbar;
+import android.view.View;
+import android.support.design.widget.NavigationView;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.widget.Toolbar;
+
 public class MainActivity extends AppCompatActivity implements
-        ConnectionCallbacks, OnConnectionFailedListener, LocationListener, OnMapReadyCallback, ResultCallback<Status>{
+        ConnectionCallbacks, OnConnectionFailedListener, LocationListener, OnMapReadyCallback, ResultCallback<Status>,
+        NavigationView.OnNavigationItemSelectedListener {
 
     protected static final String TAG = "MainActivity";
 
@@ -126,12 +145,26 @@ public class MainActivity extends AppCompatActivity implements
     private FloatingActionButton fab_all;
 
     private String mode="All";
+    private String time_mode="All";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //setContentView(R.layout.activity_main);
-        setContentView(R.layout.activity_maps);
+        //setContentView(R.layout.activity_maps);
+
+        setContentView(R.layout.activity_menu_slider);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        drawer.setDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
 
         //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
@@ -189,7 +222,12 @@ public class MainActivity extends AppCompatActivity implements
 
             switch (v.getId()) {
                 case R.id.menu_item_vehicle:
-                    ArrayList<LatLng> list = mydb.getAllVehicles();
+                    ArrayList<LatLng> list = null;
+                    if (time_mode.equals("All")) {
+                        list = mydb.getAllVehicles();
+                    } else if (time_mode.equals("Today")){
+                        list = mydb.getAllVehiclesToday();
+                    }
                     if (!list.isEmpty()) {
 
                         // Create the gradient.
@@ -222,7 +260,12 @@ public class MainActivity extends AppCompatActivity implements
                     }
                     break;
                 case R.id.menu_item_bike:
-                    ArrayList<LatLng> list2 = mydb.getAllOnBike();
+                    ArrayList<LatLng> list2 = null;
+                    if (time_mode.equals("All")) {
+                        list2 =  mydb.getAllOnBike();
+                    } else if (time_mode.equals("Today")){
+                        list2 = mydb.getAllOnBikeToday();
+                    }
                     if (!list2.isEmpty()) {
 
                         // Create the gradient.
@@ -257,7 +300,13 @@ public class MainActivity extends AppCompatActivity implements
                     }
                     break;
                 case R.id.menu_item_foot:
-                    ArrayList<LatLng> list3 = mydb.getAllOnFoot();
+                    ArrayList<LatLng> list3 = null;
+                    if (time_mode.equals("All")) {
+                        list3 =  mydb.getAllOnFoot();
+                    } else if (time_mode.equals("Today")){
+                        list3 = mydb.getAllOnFootToday();
+                    }
+
                     if (!list3.isEmpty()) {
 
                         // Create the gradient.
@@ -383,7 +432,12 @@ public class MainActivity extends AppCompatActivity implements
                     else{
                         text=text+"You have no vehicle activity recorded yet!";
                     }*/
-                    ArrayList<LatLng> list_all = mydb.getAllPoints();
+                    ArrayList<LatLng> list_all = null;
+                    if (time_mode.equals("All")) {
+                        list_all = mydb.getAllPoints();
+                    } else if (time_mode.equals("Today")){
+                        list_all = mydb.getAllPointsToday();
+                    }
                     if (!list_all.isEmpty()) {
 
                         // Create the gradient.
@@ -462,6 +516,7 @@ public class MainActivity extends AppCompatActivity implements
         }
         savedInstanceState.putString(Constants.DETECTED_ACTIVITIES, activity_type);
         savedInstanceState.putString("mode", mode);
+        savedInstanceState.putString("time mode", time_mode);
         super.onSaveInstanceState(savedInstanceState);
     }
 
@@ -500,8 +555,10 @@ public class MainActivity extends AppCompatActivity implements
 
             if (savedInstanceState != null ) {
                 mode = savedInstanceState.getString("mode");
+                time_mode = savedInstanceState.getString("time mode");
             } else {
                 mode = "All";
+                time_mode = "All";
             }
             //updateUI();
         }
@@ -871,7 +928,11 @@ public class MainActivity extends AppCompatActivity implements
 
         switch (mode){
             case "All": {
-                list = mydb.getAllPoints();
+                if (time_mode.equals("All")) {
+                    list = mydb.getAllPoints();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllPointsToday();
+                }
 
                 // Create the gradient.
                 int[] colors_all = {
@@ -887,7 +948,13 @@ public class MainActivity extends AppCompatActivity implements
                 break;
             }
             case "Vehicle": {
-                list = mydb.getAllVehicles();
+
+                if (time_mode.equals("All")) {
+                    list = mydb.getAllVehicles();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllVehiclesToday();
+                }
+
                 // Create the gradient.
                 int[] colors_vehicle = {
                         Color.rgb(190,60,125),
@@ -903,7 +970,11 @@ public class MainActivity extends AppCompatActivity implements
                 break;
             }
             case "Bike": {
-                list = mydb.getAllOnBike();
+                if (time_mode.equals("All")) {
+                    list = mydb.getAllOnBike();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllOnBikeToday();
+                }
                 // Create the gradient.
                 int[] colors_bike = {
                         Color.rgb(58,163,193),
@@ -920,7 +991,11 @@ public class MainActivity extends AppCompatActivity implements
                 break;
             }
             case "Foot": {
-                list = mydb.getAllOnFoot();
+                if (time_mode.equals("All")) {
+                    list = mydb.getAllOnFoot();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllOnFootToday();
+                }
                 // Create the gradient.
                 int[] colors_foot = {
                         Color.rgb(239,172,42),
@@ -974,7 +1049,7 @@ public class MainActivity extends AppCompatActivity implements
             } else {
                 updatedActivity= extras.getParcelable(Constants.ACTIVITY_EXTRA);
                 int confidence = updatedActivity.getConfidence();
-                if (confidence>60){
+                if (confidence>70){
                     mLastactivity_type=activity_type;
                     activity_type = Constants.getActivityString(context, updatedActivity.getType());
                     System.out.println(activity_type);
@@ -1047,6 +1122,166 @@ public class MainActivity extends AppCompatActivity implements
         // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back when calling
         // requestActivityUpdates() and removeActivityUpdates().
         return PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+    }
+
+    //For the Drawing Slider
+
+    @Override
+    public void onBackPressed() {
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_slider, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+
+    @SuppressWarnings("StatementWithEmptyBody")
+    @Override
+    public boolean onNavigationItemSelected(MenuItem item) {
+        // Handle navigation view item clicks here.
+        int id = item.getItemId();
+        String text = "";
+        if (id == R.id.nav_all) {
+
+            ArrayList<LatLng> l = mydb.getAllPoints();
+
+            if (!l.isEmpty()) {
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+
+                mProvider.setData(l);
+                mOverlay.clearTileCache();
+
+                if (mOverlay_bike!=null){
+                    mOverlay_bike.remove();
+                }
+                if (mOverlay_vehicle!=null){
+                    mOverlay_vehicle.remove();
+                }
+                if (mOverlay_foot!=null){
+                    mOverlay_foot.remove();
+                }
+                mode="All";
+                time_mode="All";
+
+            }else{
+                text=text+"You have no points recorded yet!";
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+
+        } else if (id == R.id.nav_today) {
+
+            String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
+            SimpleDateFormat df = new SimpleDateFormat("dd MMM yyyy HH:mm:ss aa");
+            try{
+                Date date = df.parse(nowAsString);
+                long epoch = date.getTime();
+                //System.out.println(nowAsString+"   " + epoch); // 1055545912454
+
+                String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+                // Create a Pattern object
+                Pattern r = Pattern.compile(pattern);
+                // Now create matcher object.
+                Matcher m = r.matcher(nowAsString);
+                if (m.find( )) {
+                    //System.out.println("Found value: " + m.group(0) );
+                }
+            }catch (ParseException e){
+                System.out.println(e);
+            }
+
+            ArrayList<LatLng> l = mydb.getAllPointsToday();
+
+            if (!l.isEmpty()) {
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+
+                mProvider.setData(l);
+                mOverlay.clearTileCache();
+
+                if (mOverlay_bike!=null){
+                    mOverlay_bike.remove();
+                }
+                if (mOverlay_vehicle!=null){
+                    mOverlay_vehicle.remove();
+                }
+                if (mOverlay_foot!=null){
+                    mOverlay_foot.remove();
+                }
+                mode="All";
+                time_mode="Today";
+
+            }else{
+                text=text+"You have no points recorded yet!";
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+
+
+        } else if (id == R.id.nav_3_days) {
+            System.out.println("3 Days");
+        } else if (id == R.id.nav_week) {
+
+        } else if (id == R.id.nav_month) {
+
+        } else if (id == R.id.nav_search) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+            System.out.println("send");
+        }
+
+        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
     }
 
 }

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_all"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="All time" />
+        <item
+            android:id="@+id/nav_today"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Today" />
+        <item
+            android:id="@+id/nav_3_days"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Last 3 Days" />
+        <item
+            android:id="@+id/nav_week"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Last Week" />
+        <item
+            android:id="@+id/nav_month"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Last Month" />
+    </group>
+
+    <item android:title="">
+        <menu>
+            <item
+                android:id="@+id/nav_search"
+                android:icon="@drawable/ic_menu_send"
+                android:title="Search" />
+            <item
+                android:id="@+id/nav_share"
+                android:icon="@drawable/ic_menu_send"
+                android:title="Share" />
+            <item
+                android:id="@+id/nav_send"
+                android:icon="@drawable/ic_menu_send"
+                android:title="Send" />
+        </menu>
+    </item>
+
+</menu>
