@@ -239,7 +239,7 @@ public class DBHelper extends SQLiteOpenHelper {
         }*/
 
 
-        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -273,7 +273,7 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -306,7 +306,7 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -339,7 +339,8 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
 
         String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
+        //String pattern2 = "(^\\d{2}\\ .{3}\\ \\d{4})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
