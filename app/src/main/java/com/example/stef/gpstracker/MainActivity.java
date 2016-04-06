@@ -22,10 +22,8 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 
 import android.location.Location;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.CheckBox;
 import android.widget.Toast;
 
 import java.text.DateFormat;
@@ -45,34 +43,21 @@ import com.google.maps.android.heatmaps.HeatmapTileProvider;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.ActionBarActivity;
 
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.ActivityRecognition;
 import com.google.android.gms.location.DetectedActivity;
 
-import android.location.Location;
-import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Toast;
 
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -96,12 +81,6 @@ public class MainActivity extends AppCompatActivity implements
     private GoogleMap mMap;
     private HeatmapTileProvider mProvider;
     private TileOverlay mOverlay;
-    private HeatmapTileProvider mProvider_vehicle;
-    private TileOverlay mOverlay_vehicle;
-    private HeatmapTileProvider mProvider_bike;
-    private TileOverlay mOverlay_bike;
-    private HeatmapTileProvider mProvider_foot;
-    private TileOverlay mOverlay_foot;
 
     private String activity_type="Uninitialized";
     private String mLastactivity_type="Uninitialized";
@@ -134,7 +113,7 @@ public class MainActivity extends AppCompatActivity implements
     /* The fastest rate for active location updates. Exact. Updates will never be more frequent
      * than this value.*/
     public static final long FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
-            UPDATE_INTERVAL_IN_MILLISECONDS / 2;
+            UPDATE_INTERVAL_IN_MILLISECONDS / 3;
 
     // Keys for storing activity state in the Bundle.
     protected final static String REQUESTING_LOCATION_UPDATES_KEY = "requesting-location-updates-key";
@@ -187,14 +166,12 @@ public class MainActivity extends AppCompatActivity implements
         menu.setOnMenuToggleListener(new FloatingActionMenu.OnMenuToggleListener() {
             @Override
             public void onMenuToggle(boolean opened) {
-                String text = "";
+                /*String text = "";
                 if (opened) {
                     text = "Menu opened";
                 } else {
                     text = "Menu closed";
-                }
-                //A toast message when opening - closing the menu
-                //Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+                }*/
             }
         });
 
@@ -209,13 +186,13 @@ public class MainActivity extends AppCompatActivity implements
         fab_all.setOnClickListener(clickListener);
 
         updateValuesFromBundle(savedInstanceState);
-        MenuItem selected3 = (MenuItem) navigationView.getMenu().getItem(2);
+        MenuItem selected3 = navigationView.getMenu().getItem(2);
         selected3.setTitle(selected_dates);
         if(time_mode.equals("All")){
-            MenuItem selected = (MenuItem) navigationView.getMenu().getItem(0);
+            MenuItem selected = navigationView.getMenu().getItem(0);
             selected.setChecked(true);
         } else if(time_mode.equals("Today")){
-            MenuItem selected2 = (MenuItem) navigationView.getMenu().getItem(1);
+            MenuItem selected2 = navigationView.getMenu().getItem(1);
             selected2.setChecked(true);
         } else{
             selected3.setChecked(true);
@@ -246,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements
                     } else if (time_mode.equals("Today")){
                         list = mydb.getAllVehiclesToday();
                     } else if (time_mode.equals("Date Picked")){
-                        list = mydb.getAllVehicles(); //TODO query
+                        list = mydb.getAllOnVehicleDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
                     }
                     if (!list.isEmpty()) {
 
@@ -267,12 +244,6 @@ public class MainActivity extends AppCompatActivity implements
 
                         mProvider.setData(list);
                         mOverlay.clearTileCache();
-                        if (mOverlay_bike!=null){
-                            mOverlay_bike.remove();
-                        }
-                        if (mOverlay_foot!=null){
-                            mOverlay_foot.remove();
-                        }
                         mode="Vehicle";
                     }
                     else{
@@ -286,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements
                     } else if (time_mode.equals("Today")){
                         list2 = mydb.getAllOnBikeToday();
                     } else if (time_mode.equals("Date Picked")){
-                        list2 = mydb.getAllOnBike(); //TODO query
+                        list2  = mydb.getAllOnBikeDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
                     }
                     if (!list2.isEmpty()) {
 
@@ -307,13 +278,6 @@ public class MainActivity extends AppCompatActivity implements
                         mProvider.setGradient(gradient_bike);
                         mOverlay.clearTileCache();
 
-                        if (mOverlay_vehicle!=null){
-                            mOverlay_vehicle.remove();
-                        }
-                        if (mOverlay_foot!=null){
-                            mOverlay_foot.remove();
-                        }
-
                         mode="Bike";
 
                     }
@@ -327,8 +291,8 @@ public class MainActivity extends AppCompatActivity implements
                         list3 =  mydb.getAllOnFoot();
                     } else if (time_mode.equals("Today")){
                         list3 = mydb.getAllOnFootToday();
-                    } else if (time_mode.equals("Date Picked")){
-                        list3 = mydb.getAllOnFoot(); //TODO query
+                    } else if (time_mode.equals("Date Picked")) {
+                        list3 = mydb.getAllOnFootDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
                     }
 
                     if (!list3.isEmpty()) {
@@ -349,14 +313,6 @@ public class MainActivity extends AppCompatActivity implements
                         mProvider.setGradient(gradient_foot);
                         mProvider.setData(list3);
                         mOverlay.clearTileCache();
-
-                        if (mOverlay_bike!=null){
-                            mOverlay_bike.remove();
-                        }
-                        if (mOverlay_vehicle!=null){
-                            mOverlay_vehicle.remove();
-                        }
-
                         mode="Foot";
                     }
                     else{
@@ -365,104 +321,13 @@ public class MainActivity extends AppCompatActivity implements
                     break;
                 case R.id.menu_item_all:
 
-                    /*ArrayList<LatLng> list_foot = mydb.getAllOnFoot();
-                    ArrayList<LatLng> list_vehicles = mydb.getAllVehicles();
-                    ArrayList<LatLng> list_bike = mydb.getAllOnBike();
-
-                    if (!list_foot.isEmpty()) {
-
-                        // Create the gradient.
-                        int[] colors_foot = {
-                                Color.rgb(239,172,42),
-                                Color.rgb(245,130,125),
-                                Color.rgb(250,70,60)
-                        };
-
-                        float[] startPoints_foot = {
-                                0.2f, 0.6f, 1f
-                        };
-
-                        mProvider_foot = new HeatmapTileProvider.Builder()
-                                .data(list_foot)
-                                .build();
-                        // Add a tile overlay to the map, using the heat map tile provider.
-                        mOverlay_foot = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_foot));
-
-                        Gradient gradient_foot = new Gradient(colors_foot, startPoints_foot);
-
-                        mProvider_foot.setGradient(gradient_foot);
-                        mProvider_foot.setData(list_foot);
-                        mOverlay_foot.clearTileCache();
-
-                    } else {
-                        text=text+"You have no walking or running activity recorded yet!";
-                    }
-
-                    if (!list_bike.isEmpty()) {
-
-                        // Create the gradient.
-                        int[] colors_bike = {
-                                Color.rgb(58,163,193),
-                                Color.rgb(40,57,150),
-                                Color.rgb(38,9,128)
-                        };
-
-                        float[] startPoints_bike = {
-                                0.2f, 0.8f, 1f
-                        };
-
-                        mProvider_bike = new HeatmapTileProvider.Builder()
-                                .data(list_bike)
-                                .build();
-                        // Add a tile overlay to the map, using the heat map tile provider.
-                        mOverlay_bike = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_bike));
-
-                        Gradient gradient_bike = new Gradient(colors_bike, startPoints_bike);
-
-                        mProvider_bike.setData(list_bike);
-                        mProvider_bike.setGradient(gradient_bike);
-                        mOverlay_bike.clearTileCache();
-                    }
-                    else{
-                        text=text+"You have no bike activity recorded yet!";
-                    }
-
-                    if (!list_vehicles.isEmpty()) {
-
-                        // Create the gradient.
-                        int[] colors_vehicle = {
-                                Color.rgb(190,60,125),
-                                Color.rgb(86,16,80),
-                                Color.rgb(53,1,63)
-                        };
-
-                        float[] startPoints_vehicle = {
-                                0.2f, 0.8f, 1f
-                        };
-
-                        mProvider_vehicle = new HeatmapTileProvider.Builder()
-                                .data(list_vehicles)
-                                .build();
-                        // Add a tile overlay to the map, using the heat map tile provider.
-                        mOverlay_vehicle = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider_vehicle));
-
-                        Gradient gradient_vehicle = new Gradient(colors_vehicle, startPoints_vehicle);
-
-                        mProvider_vehicle.setGradient(gradient_vehicle);
-
-                        mProvider_vehicle.setData(list_vehicles);
-                        mOverlay_vehicle.clearTileCache();
-                    }
-                    else{
-                        text=text+"You have no vehicle activity recorded yet!";
-                    }*/
                     ArrayList<LatLng> list_all = null;
                     if (time_mode.equals("All")) {
                         list_all = mydb.getAllPoints();
                     } else if (time_mode.equals("Today")){
                         list_all = mydb.getAllPointsToday();
-                    } else if (time_mode.equals("Date Picked")){
-                        list_all = mydb.getAllPoints(); //TODO query
+                    } else if (time_mode.equals("Date Picked")) {
+                        list_all = mydb.getAllPointsDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
                     }
                     if (!list_all.isEmpty()) {
 
@@ -483,15 +348,6 @@ public class MainActivity extends AppCompatActivity implements
                         mProvider.setData(list_all);
                         mOverlay.clearTileCache();
 
-                        if (mOverlay_bike!=null){
-                            mOverlay_bike.remove();
-                        }
-                        if (mOverlay_vehicle!=null){
-                            mOverlay_vehicle.remove();
-                        }
-                        if (mOverlay_foot!=null){
-                            mOverlay_foot.remove();
-                        }
                         mode="All";
 
                     }else{
@@ -528,7 +384,6 @@ public class MainActivity extends AppCompatActivity implements
                 .addApi(ActivityRecognition.API)
                 .build();
     }
-
 
     public void onSaveInstanceState(Bundle savedInstanceState) {
         savedInstanceState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
@@ -640,10 +495,6 @@ public class MainActivity extends AppCompatActivity implements
         // Unregister the broadcast receiver that was registered during onResume().
         //LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
 
-        //ArrayList<LatLng> l = mydb.getAllPoints();
-        //String s = DatabaseUtils.dumpCursorToString(cursor);
-        //System.out.println(l);
-
         ArrayList<String> l2 = mydb.getAllPointsActivity();
         ArrayList<String> l3 = mydb.getAllPointsTime();
         if (!l2.isEmpty()) {
@@ -689,10 +540,6 @@ public class MainActivity extends AppCompatActivity implements
                     lon = mCurrentLocation.getLongitude();
                     mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
                     mTimeOfLastLocationEvent = mCurrentLocation.getTime();
-                    //locationlist.add(new LatLng(lat, lon));
-
-                    //Don't save the last known location. It has already been saved!
-                    //mydb.insertTrackpoint(lat, lon, mLastUpdateTime.toString(), activity_type);
 
                     SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                             .findFragmentById(R.id.map);
@@ -716,16 +563,10 @@ public class MainActivity extends AppCompatActivity implements
             mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
             if (mCurrentLocation != null) {
 
-                //add code here
                 lat = mCurrentLocation.getLatitude();
                 lon = mCurrentLocation.getLongitude();
                 mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
                 mTimeOfLastLocationEvent = mCurrentLocation.getTime();
-                //locationlist.add(new LatLng(lat, lon));
-                //JSONFileWrite();
-
-                //Don't save the last known location. It has already been saved!
-                //mydb.insertTrackpoint(lat, lon, mLastUpdateTime.toString(), activity_type);
 
                 SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                         .findFragmentById(R.id.map);
@@ -802,7 +643,12 @@ public class MainActivity extends AppCompatActivity implements
             mCurrentLocation = location;
             lat = mCurrentLocation.getLatitude();
             lon = mCurrentLocation.getLongitude();
-            mCurrentTime = DateFormat.getDateTimeInstance().format(new Date());
+
+            SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+            Calendar c = Calendar.getInstance();
+            Date date = new Date();
+            mCurrentTime = originalFormat.format(date);
 
             if (!activity_type.equals("Uninitialized")) {
                 switch( activity_type ) {
@@ -812,7 +658,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -822,7 +668,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -832,7 +678,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -842,30 +688,23 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
                     case "Still": {
-                        System.out.println("MPHKA STO STILL LEME!");
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        System.out.println(location.getTime()-mTimeOfLastLocationEvent);
-                        System.out.println("last activity = " + mLastactivity_type);
-                        System.out.println(mLastactivity_type.equals("Still"));
                         if (mLastactivity_type.equals("Still")){
                             if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000*30){
-                                System.out.println("MPHKA PIO MESA!");
-                                System.out.println(mTimeOfLastLocationEvent);
-                                System.out.println(location.getTime());
                                 //be sure to store the time of receiving this event !
                                 mTimeOfLastLocationEvent = location.getTime();
-                                mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                                mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                             }
                         }
                         else{
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -875,7 +714,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000*15){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -885,7 +724,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 30000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -895,7 +734,7 @@ public class MainActivity extends AppCompatActivity implements
                         if ((location.getTime() - mTimeOfLastLocationEvent) >= 30000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime.toString(), activity_type);
+                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
                         }
                         break;
                     }
@@ -958,7 +797,6 @@ public class MainActivity extends AppCompatActivity implements
     private void addHeatMap(GoogleMap map) {
         ArrayList<LatLng> list = new ArrayList<LatLng>();
         Gradient gradient = null;
-        //System.out.println("mode= "+mode);
 
         switch (mode){
             case "All": {
@@ -967,7 +805,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else if (time_mode.equals("Today")){
                     list = mydb.getAllPointsToday();
                 } else if (time_mode.equals("Date Picked")){
-                    list = mydb.getAllPoints(); //TODO query
+                    list = mydb.getAllPointsDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
                 }
 
                 // Create the gradient.
@@ -990,7 +828,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else if (time_mode.equals("Today")){
                     list = mydb.getAllVehiclesToday();
                 } else if (time_mode.equals("Date Picked")){
-                    list = mydb.getAllVehicles(); //TODO query
+                    list = mydb.getAllOnVehicleDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
                 }
 
                 // Create the gradient.
@@ -1013,7 +851,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else if (time_mode.equals("Today")){
                     list = mydb.getAllOnBikeToday();
                 }  else if (time_mode.equals("Date Picked")){
-                    list = mydb.getAllOnBike(); //TODO query
+                    list = mydb.getAllOnBikeDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
                 }
                 // Create the gradient.
                 int[] colors_bike = {
@@ -1036,7 +874,7 @@ public class MainActivity extends AppCompatActivity implements
                 } else if (time_mode.equals("Today")){
                     list = mydb.getAllOnFootToday();
                 } else if (time_mode.equals("Date Picked")){
-                    list = mydb.getAllOnFoot(); //TODO query
+                    list = mydb.getAllOnFootDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
                 }
                 // Create the gradient.
                 int[] colors_foot = {
@@ -1055,7 +893,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         if (!list.isEmpty()) {
-            // Create a heat map tile provider, passing it the latlngs of the police stations.
+            // Create a heat map tile provider, passing it the latlngs of the recorded points.
             mProvider = new HeatmapTileProvider.Builder()
                     .data(list)
                     .build();
@@ -1064,10 +902,11 @@ public class MainActivity extends AppCompatActivity implements
             }
             // Add a tile overlay to the map, using the heat map tile provider.
             mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+        }else{
+            String text="You have no points recorded yet!";
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
         }
     }
-
-
 
     /**
      * Receiver for intents sent by DetectedActivitiesIntentService via a sendBroadcast().
@@ -1149,7 +988,6 @@ public class MainActivity extends AppCompatActivity implements
     public void onResult(Status status) {
         if (status.isSuccess()) {
             System.out.println("SuCcESS");
-            //
         } else {
             Log.e(TAG, "Error adding or removing activity detection: " + status.getStatusMessage());
         }
@@ -1209,7 +1047,7 @@ public class MainActivity extends AppCompatActivity implements
         String text = "";
         if (id == R.id.nav_all) {
 
-            MenuItem selected = (MenuItem) navigationView.getMenu().getItem(2);
+            MenuItem selected = navigationView.getMenu().getItem(2);
             selected.setTitle("Choose a time period");
             selected_dates="Choose a time period";
 
@@ -1230,19 +1068,8 @@ public class MainActivity extends AppCompatActivity implements
                 Gradient gradient_all = new Gradient(colors_all, startPoints_all);
 
                 mProvider.setGradient(gradient_all);
-
                 mProvider.setData(l);
                 mOverlay.clearTileCache();
-
-                if (mOverlay_bike!=null){
-                    mOverlay_bike.remove();
-                }
-                if (mOverlay_vehicle!=null){
-                    mOverlay_vehicle.remove();
-                }
-                if (mOverlay_foot!=null){
-                    mOverlay_foot.remove();
-                }
                 mode="All";
                 time_mode="All";
 
@@ -1253,28 +1080,9 @@ public class MainActivity extends AppCompatActivity implements
 
         } else if (id == R.id.nav_today) {
 
-            MenuItem selected = (MenuItem) navigationView.getMenu().getItem(2);
+            MenuItem selected = navigationView.getMenu().getItem(2);
             selected.setTitle("Choose a time period");
             selected_dates="Choose a time period";
-
-            String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-            SimpleDateFormat df = new SimpleDateFormat("dd MMM yyyy HH:mm:ss aa");
-            try{
-                Date date = df.parse(nowAsString);
-                long epoch = date.getTime();
-                //System.out.println(nowAsString+"   " + epoch); // 1055545912454
-
-                String pattern = "(^\\d{2}\\ .{3}\\ \\d{4})";
-                // Create a Pattern object
-                Pattern r = Pattern.compile(pattern);
-                // Now create matcher object.
-                Matcher m = r.matcher(nowAsString);
-                if (m.find( )) {
-                    //System.out.println("Found value: " + m.group(0) );
-                }
-            }catch (ParseException e){
-                System.out.println(e);
-            }
 
             ArrayList<LatLng> l = mydb.getAllPointsToday();
 
@@ -1296,16 +1104,6 @@ public class MainActivity extends AppCompatActivity implements
 
                 mProvider.setData(l);
                 mOverlay.clearTileCache();
-
-                if (mOverlay_bike!=null){
-                    mOverlay_bike.remove();
-                }
-                if (mOverlay_vehicle!=null){
-                    mOverlay_vehicle.remove();
-                }
-                if (mOverlay_foot!=null){
-                    mOverlay_foot.remove();
-                }
                 mode="All";
                 time_mode="Today";
 
@@ -1329,11 +1127,11 @@ public class MainActivity extends AppCompatActivity implements
                 @Override
                 public void onCancel(DialogInterface dialogInterface) {
                     if(time_mode.equals("All")){
-                        MenuItem selected = (MenuItem) navigationView.getMenu().getItem(0);
+                        MenuItem selected = navigationView.getMenu().getItem(0);
                         selected.setChecked(true);
                         custom_item.setChecked(false);
                     } else if(time_mode.equals("Today")){
-                        MenuItem selected = (MenuItem) navigationView.getMenu().getItem(1);
+                        MenuItem selected = navigationView.getMenu().getItem(1);
                         selected.setChecked(true);
                         custom_item.setChecked(false);
                     }
@@ -1363,17 +1161,75 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth,int yearEnd, int monthOfYearEnd, int dayOfMonthEnd) {
-        String date = "You picked the following date: From- "+dayOfMonth+"/"+(++monthOfYear)+"/"+year+" To "+dayOfMonthEnd+"/"+(++monthOfYearEnd)+"/"+yearEnd;
-        System.out.println(date);
+        String date = "You picked the following date: From- " + dayOfMonth + "/" + (++monthOfYear) + "/" + year + " To " + dayOfMonthEnd + "/" + (++monthOfYearEnd) + "/" + yearEnd;
+
         datepickedstart=""+dayOfMonth+"/"+(monthOfYear)+"/"+year+"";
         datepickedend=""+dayOfMonthEnd+"/"+(monthOfYearEnd)+"/"+yearEnd+"";
-        MenuItem selected = (MenuItem) navigationView.getMenu().getItem(2);
-        if (!datepickedstart.equals("") && !datepickedend.equals("")){
-            selected_dates=datepickedstart+" - "+datepickedend;
-            selected.setTitle(selected_dates);
-            time_mode="Date Picked";
-            mode="All";
+        try {
+
+            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy");
+            Date date1 = originalFormat.parse(datepickedstart);
+            Date date2 = originalFormat.parse(datepickedend);
+
+            Date current = new Date();
+
+            MenuItem selected = navigationView.getMenu().getItem(2);
+            ArrayList<LatLng> list_all;
+            list_all = mydb.getAllPointsDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+            String text = "";
+            if ((!list_all.isEmpty()) && (!datepickedstart.equals("") && !datepickedend.equals("")) && (date2.after(date1))
+                    && !(date1.after(current)) && !(date2.after(current))) {
+
+                selected_dates = datepickedstart + " - " + datepickedend;
+                selected.setTitle(selected_dates);
+                time_mode = "Date Picked";
+                mode = "All";
+
+                // Create the gradient.
+                int[] colors_all = {
+                    Color.rgb(102, 225, 0), // green
+                    Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                    0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+                mProvider.setData(list_all);
+                mOverlay.clearTileCache();
+                mode = "All";
+
+         } else {
+            //Check if days are valid and inform accordingly
+            if ((datepickedstart.equals("") | datepickedend.equals("")) | (date1.after(date2))
+                    | (date1.after(current)) | (date2.after(current))){
+                text = text + "Wrong Input Dates!";
+
+            }else{
+                //else it means the database was empty for these dates
+                text = text + "You have no points recorded in this period!";
+            }
+         }
+
+        if (!text.equals("")) {
+            if (time_mode.equals("All")) {
+                MenuItem selected_item = navigationView.getMenu().getItem(0);
+                selected_item.setChecked(true);
+                selected.setChecked(false);
+            } else if (time_mode.equals("Today")) {
+                MenuItem selected_item = navigationView.getMenu().getItem(1);
+                selected_item.setChecked(true);
+                selected.setChecked(false);
+            }
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
         }
+        }catch (ParseException e){
+            System.out.println(e);
+        }
+
     }
 
 }

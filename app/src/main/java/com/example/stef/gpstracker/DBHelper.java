@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -113,7 +114,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -134,7 +135,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
             String activity = res.getString(res.getColumnIndex(TRACKPOINTS_COLUMN_ACTIVITY));
             array_list.add(activity);
             res.moveToNext();
@@ -152,7 +153,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
             String timestamp = res.getString(res.getColumnIndex(TRACKPOINTS_COLUMN_TIME));
             array_list.add(timestamp);
             res.moveToNext();
@@ -169,7 +170,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'In a vehicle'", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -189,7 +190,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On foot'", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -209,7 +210,7 @@ public class DBHelper extends SQLiteOpenHelper {
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On a bicycle'", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -225,21 +226,14 @@ public class DBHelper extends SQLiteOpenHelper {
     {
         ArrayList<LatLng> array_list = new ArrayList<LatLng>();
 
-        //hp = new HashMap();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        //SimpleDateFormat df = new SimpleDateFormat("dd MMM yyyy HH:mm:ss aa");
-        /*try{
-            Date date = df.parse(nowAsString);
-            long epoch = date.getTime();
-            System.out.println(nowAsString+"   " + epoch); // 1055545912454
-        }catch (ParseException e){
-            System.out.println(e);
-        }*/
+        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
+        Date date = new Date();
+        String nowAsString  = originalFormat.format(date);
 
-        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
+        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -251,10 +245,9 @@ public class DBHelper extends SQLiteOpenHelper {
 
         Cursor res =  db.rawQuery( "select * from TRACKPOINTS where time LIKE '%"+today_date+"%'", null );
 
-        //Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -272,8 +265,12 @@ public class DBHelper extends SQLiteOpenHelper {
 
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
+        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        Date date = new Date();
+        String nowAsString  = originalFormat.format(date);
+
+        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -287,7 +284,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -305,8 +302,12 @@ public class DBHelper extends SQLiteOpenHelper {
 
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
+        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        Date date = new Date();
+        String nowAsString  = originalFormat.format(date);
+
+        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -320,7 +321,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -338,9 +339,13 @@ public class DBHelper extends SQLiteOpenHelper {
 
         SQLiteDatabase db = this.getReadableDatabase();
 
-        String nowAsString = DateFormat.getDateTimeInstance().format(new Date());
-        String pattern = "((^\\d{2}|^\\d{1})\\ .{3}\\ \\d{4})";
-        //String pattern2 = "(^\\d{2}\\ .{3}\\ \\d{4})";
+        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        Date date = new Date();
+        String nowAsString  = originalFormat.format(date);
+
+        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
+
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
@@ -354,7 +359,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
         res.moveToFirst();
 
-        while(res.isAfterLast() == false){
+        while(!res.isAfterLast()){
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
             double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
@@ -367,4 +372,164 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
 
+    public ArrayList<LatLng> getAllPointsDatePeriod(String start, String end)
+    {
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        try {
+            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = originalFormat.parse(start);
+            String formattedDate_start = targetFormat.format(date);
+
+            Date date2 = originalFormat.parse(end);
+            String formattedDate_end = targetFormat.format(date2);
+
+            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
+                    + formattedDate_start + "' and '" + formattedDate_end+"'", null);
+
+            res.moveToFirst();
+
+            while(!res.isAfterLast()){
+
+                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+                LatLng pair = new LatLng(lati, lngi);
+                array_list.add(pair);
+                res.moveToNext();
+
+            }
+            res.close();
+            return array_list;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public ArrayList<LatLng> getAllOnVehicleDatePeriod(String start, String end)
+    {
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        try {
+            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = originalFormat.parse(start);
+            String formattedDate_start = targetFormat.format(date);
+
+            Date date2 = originalFormat.parse(end);
+            String formattedDate_end = targetFormat.format(date2);
+
+            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
+                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'In a vehicle'", null);
+
+            res.moveToFirst();
+
+            while(!res.isAfterLast()){
+
+                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+                LatLng pair = new LatLng(lati, lngi);
+                array_list.add(pair);
+                res.moveToNext();
+
+            }
+            res.close();
+            return array_list;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public ArrayList<LatLng> getAllOnBikeDatePeriod(String start, String end)
+    {
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        try {
+            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = originalFormat.parse(start);
+            String formattedDate_start = targetFormat.format(date);
+
+            Date date2 = originalFormat.parse(end);
+            String formattedDate_end = targetFormat.format(date2);
+
+            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
+                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'On a bicycle'", null);
+
+            res.moveToFirst();
+
+            while(!res.isAfterLast()){
+
+                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+                LatLng pair = new LatLng(lati, lngi);
+                array_list.add(pair);
+                res.moveToNext();
+
+            }
+            res.close();
+            return array_list;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    public ArrayList<LatLng> getAllOnFootDatePeriod(String start, String end)
+    {
+        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        try {
+            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
+            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = originalFormat.parse(start);
+            String formattedDate_start = targetFormat.format(date);
+
+            Date date2 = originalFormat.parse(end);
+            String formattedDate_end = targetFormat.format(date2);
+
+            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
+                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'On foot'", null);
+
+            res.moveToFirst();
+
+            while(!res.isAfterLast()){
+
+                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
+                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+                LatLng pair = new LatLng(lati, lngi);
+                array_list.add(pair);
+                res.moveToNext();
+
+            }
+            res.close();
+            return array_list;
+
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+    /*public void update(){
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("UPDATE TRACKPOINTS SET time='2016-04-02 14:32:15'");
+    }*/
 }
