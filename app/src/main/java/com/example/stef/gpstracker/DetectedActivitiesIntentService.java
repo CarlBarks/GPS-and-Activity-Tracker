@@ -61,14 +61,9 @@ public class DetectedActivitiesIntentService extends IntentService {
         Intent localIntent = new Intent(Constants.BROADCAST_ACTION);
 
         DetectedActivity mostProbableActivity = result.getMostProbableActivity();
-
-        // Get the confidence % (probability)
         int confidence = mostProbableActivity.getConfidence();
-
-        // Get the type
-        int activityType = mostProbableActivity.getType();
-
-        System.out.println("Activity service says: "  + activityType + "is most probable with: " + confidence);
+        int activityCat = mostProbableActivity.getType();
+        System.out.println(mostProbableActivity.toString() + " category: " + activityCat + " probability: " + confidence);
 
         // Broadcast the list of detected activities.
         localIntent.putExtra(Constants.ACTIVITY_EXTRA, mostProbableActivity);
