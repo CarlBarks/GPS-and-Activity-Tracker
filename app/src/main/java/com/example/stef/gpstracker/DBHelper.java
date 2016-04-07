@@ -1,8 +1,5 @@
 package com.example.stef.gpstracker;
 
-/**
- * Created by Stef on 9/3/2016.
- */
 import java.io.File;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -32,18 +29,16 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String TRACKPOINTS_COLUMN_LAT = "lat";
     public static final String TRACKPOINTS_COLUMN_LON = "lon";
     public static final String TRACKPOINTS_COLUMN_TIME = "time";
-    public static final String TRACKPOINTS_COLUMN_ACTIVITY= "activity";
+    public static final String TRACKPOINTS_COLUMN_ACTIVITY = "activity";
     private HashMap hp;
     // variable to hold context
     private Context context;
 
     private SQLiteDatabase db;
 
-    public DBHelper(Context context)
-    {
-        super(context, DATABASE_NAME , null, 1);
-        this.context=context;
-        //db = getWritableDatabase();
+    public DBHelper(Context context) {
+        super(context, DATABASE_NAME, null, 1);
+        this.context = context;
     }
 
     @Override
@@ -60,8 +55,7 @@ public class DBHelper extends SQLiteOpenHelper {
         //onCreate(db);
     }
 
-    public boolean insertTrackpoint  (double lat, double lon, String time, String activity)
-    {
+    public boolean insertTrackpoint(double lat, double lon, String time, String activity) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues contentValues = new ContentValues();
         contentValues.put("lat", lat);
@@ -72,71 +66,28 @@ public class DBHelper extends SQLiteOpenHelper {
         return true;
     }
 
-    public Cursor getData(int id){
+    public Cursor getData(int id) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where id="+id+"", null );
+        Cursor res = db.rawQuery("select * from TRACKPOINTS where id=" + id + "", null);
         return res;
     }
 
-    public int numberOfRows(){
+    public int numberOfRows() {
         SQLiteDatabase db = this.getReadableDatabase();
         int numRows = (int) DatabaseUtils.queryNumEntries(db, TRACKPOINTS_TABLE_NAME);
         return numRows;
     }
 
-    /*public boolean updateContact (Integer id, String name, String phone, String email, String street,String place)
-    {
-        /*SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put("name", name);
-        contentValues.put("phone", phone);
-        contentValues.put("email", email);
-        contentValues.put("street", street);
-        contentValues.put("place", place);
-        db.update("TRACKPOINTS", contentValues, "id = ? ", new String[] { Integer.toString(id) } );
-        return true;
-    }*/
 
-    /*public Integer deleteContact (Integer id)
-    {
-        SQLiteDatabase db = this.getWritableDatabase();
-        return db.delete("TRACKPOINTS",
-                "id = ? ",
-                new String[] { Integer.toString(id) });
-    }*/
-
-    public ArrayList<LatLng> getAllPoints()
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        //hp = new HashMap();
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-    public ArrayList<String> getAllPointsActivity()
-    {
+    public ArrayList<String> getColumn(String column) {
         ArrayList<String> array_list = new ArrayList<String>();
 
-        //hp = new HashMap();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
+        Cursor res = db.rawQuery("select * from TRACKPOINTS", null);
         res.moveToFirst();
 
-        while(!res.isAfterLast()){
-            String activity = res.getString(res.getColumnIndex(TRACKPOINTS_COLUMN_ACTIVITY));
+        while (!res.isAfterLast()) {
+            String activity = res.getString(res.getColumnIndex(column));
             array_list.add(activity);
             res.moveToNext();
         }
@@ -144,36 +95,40 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public ArrayList<String> getAllPointsTime()
-    {
-        ArrayList<String> array_list = new ArrayList<String>();
-
-        //hp = new HashMap();
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS", null );
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-            String timestamp = res.getString(res.getColumnIndex(TRACKPOINTS_COLUMN_TIME));
-            array_list.add(timestamp);
-            res.moveToNext();
-        }
-        res.close();
+    public ArrayList<String> getAllPointsActivity() {
+        ArrayList<String> array_list;
+        array_list = getColumn(TRACKPOINTS_COLUMN_ACTIVITY);
         return array_list;
     }
 
-    public ArrayList<LatLng> getAllVehicles(){
+    public ArrayList<String> getAllPointsTime() {
+        ArrayList<String> array_list;
+        array_list = getColumn(TRACKPOINTS_COLUMN_TIME);
+        return array_list;
+    }
 
+    public ArrayList<LatLng> getAllPoints(String mode) {
         ArrayList<LatLng> array_list = new ArrayList<LatLng>();
 
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'In a vehicle'", null );
+        String query = "";
+        if (mode.equals("All")) {
+            query = "select * from TRACKPOINTS";
+        } else if (mode.equals("Vehicle")) {
+            query = "select * from TRACKPOINTS where activity=" + "'In a vehicle'";
+        } else if (mode.equals("Foot")) {
+            query = "select * from TRACKPOINTS where activity=" + "'On foot'";
+        } else if (mode.equals("Bike")) {
+            query = "select * from TRACKPOINTS where activity=" + "'On a bicycle'";
+        }
+
+        // send DB query
+        Cursor res = db.rawQuery(query, null);
         res.moveToFirst();
 
-        while(!res.isAfterLast()){
-
+        while (!res.isAfterLast()) {
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            double lngi = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
             LatLng pair = new LatLng(lati, lngi);
             array_list.add(pair);
             res.moveToNext();
@@ -182,75 +137,44 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public ArrayList<LatLng> getAllOnFoot(){
-
+    public ArrayList<LatLng> getAllPointsToday(String mode) {
         ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On foot'", null );
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-    public ArrayList<LatLng> getAllOnBike(){
-
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where activity="+"'On a bicycle'", null );
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-    public ArrayList<LatLng> getAllPointsToday()
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
 
         SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         Date date = new Date();
-        String nowAsString  = originalFormat.format(date);
+        String nowAsString = originalFormat.format(date);
 
         String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
         // Create a Pattern object
         Pattern r = Pattern.compile(pattern);
         // Now create matcher object.
         Matcher m = r.matcher(nowAsString);
-        String today_date="";
-        if (m.find( )) {
+        String today_date = "";
+        if (m.find()) {
             today_date = m.group(0);
         }
 
-        Cursor res =  db.rawQuery( "select * from TRACKPOINTS where time LIKE '%"+today_date+"%'", null );
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "";
+        if (mode.equals("All")) {
+            query = "select * from TRACKPOINTS where time LIKE '%" + today_date + "%'";
+        } else if (mode.equals("Vehicle")) {
+            query = "select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity=" + "'In a vehicle'";
+        } else if (mode.equals("Foot")) {
+            query = "select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity=" + "'On foot'";
+        } else if (mode.equals("Bike")) {
+            query = "select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity=" + "'On a bicycle'";
+        }
 
+        // send DB query
+        Cursor res = db.rawQuery(query, null);
         res.moveToFirst();
 
-        while(!res.isAfterLast()){
+        while (!res.isAfterLast()) {
 
             double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+            double lngi = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
             LatLng pair = new LatLng(lati, lngi);
             array_list.add(pair);
             res.moveToNext();
@@ -259,124 +183,8 @@ public class DBHelper extends SQLiteOpenHelper {
         return array_list;
     }
 
-    public ArrayList<LatLng> getAllVehiclesToday(){
-
+    public ArrayList<LatLng> getAllPointsDatePeriod(String mode, String start, String end) {
         ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        Date date = new Date();
-        String nowAsString  = originalFormat.format(date);
-
-        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
-        // Create a Pattern object
-        Pattern r = Pattern.compile(pattern);
-        // Now create matcher object.
-        Matcher m = r.matcher(nowAsString);
-        String today_date="";
-        if (m.find( )) {
-            today_date = m.group(0);
-        }
-
-        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'In a vehicle'", null);
-
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-    public ArrayList<LatLng> getAllOnBikeToday(){
-
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        Date date = new Date();
-        String nowAsString  = originalFormat.format(date);
-
-        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
-        // Create a Pattern object
-        Pattern r = Pattern.compile(pattern);
-        // Now create matcher object.
-        Matcher m = r.matcher(nowAsString);
-        String today_date="";
-        if (m.find( )) {
-            today_date = m.group(0);
-        }
-
-        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'On a bicycle'", null);
-
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-    public ArrayList<LatLng> getAllOnFootToday(){
-
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        Date date = new Date();
-        String nowAsString  = originalFormat.format(date);
-
-        String pattern = "(^\\d{4}-\\d{2}-\\d{2})";
-
-        // Create a Pattern object
-        Pattern r = Pattern.compile(pattern);
-        // Now create matcher object.
-        Matcher m = r.matcher(nowAsString);
-        String today_date="";
-        if (m.find( )) {
-            today_date = m.group(0);
-        }
-
-        Cursor res =  db.rawQuery("select * from TRACKPOINTS where time LIKE '%" + today_date + "%' AND activity="+"'On foot'", null);
-
-        res.moveToFirst();
-
-        while(!res.isAfterLast()){
-
-            double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-            double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-            LatLng pair = new LatLng(lati, lngi);
-            array_list.add(pair);
-            res.moveToNext();
-        }
-        res.close();
-        return array_list;
-    }
-
-
-    public ArrayList<LatLng> getAllPointsDatePeriod(String start, String end)
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
 
         try {
             DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
@@ -387,15 +195,30 @@ public class DBHelper extends SQLiteOpenHelper {
             Date date2 = originalFormat.parse(end);
             String formattedDate_end = targetFormat.format(date2);
 
-            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
-                    + formattedDate_start + "' and '" + formattedDate_end+"'", null);
+            SQLiteDatabase db = this.getReadableDatabase();
+            String query = "";
+            if (mode.equals("All")) {
+                query = "select * from TRACKPOINTS where time between '"
+                        + formattedDate_start + "' and '" + formattedDate_end + "'";
+            } else if (mode.equals("Vehicle")) {
+                query = "select * from TRACKPOINTS where time between '"
+                        + formattedDate_start + "' and '" + formattedDate_end + "' AND activity=" + "'In a vehicle'";
+            } else if (mode.equals("Foot")) {
+                query = "select * from TRACKPOINTS where time between '"
+                        + formattedDate_start + "' and '" + formattedDate_end + "' AND activity=" + "'On foot'";
+            } else if (mode.equals("Bike")) {
+                query = "select * from TRACKPOINTS where time between '"
+                        + formattedDate_start + "' and '" + formattedDate_end + "' AND activity=" + "'On a bicycle'";
+            }
 
+            // send DB query
+            Cursor res = db.rawQuery(query, null);
             res.moveToFirst();
 
-            while(!res.isAfterLast()){
+            while (!res.isAfterLast()) {
 
                 double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
+                double lngi = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
                 LatLng pair = new LatLng(lati, lngi);
                 array_list.add(pair);
                 res.moveToNext();
@@ -410,126 +233,4 @@ public class DBHelper extends SQLiteOpenHelper {
         }
 
     }
-
-    public ArrayList<LatLng> getAllOnVehicleDatePeriod(String start, String end)
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        try {
-            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date date = originalFormat.parse(start);
-            String formattedDate_start = targetFormat.format(date);
-
-            Date date2 = originalFormat.parse(end);
-            String formattedDate_end = targetFormat.format(date2);
-
-            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
-                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'In a vehicle'", null);
-
-            res.moveToFirst();
-
-            while(!res.isAfterLast()){
-
-                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-                LatLng pair = new LatLng(lati, lngi);
-                array_list.add(pair);
-                res.moveToNext();
-
-            }
-            res.close();
-            return array_list;
-
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    public ArrayList<LatLng> getAllOnBikeDatePeriod(String start, String end)
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        try {
-            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date date = originalFormat.parse(start);
-            String formattedDate_start = targetFormat.format(date);
-
-            Date date2 = originalFormat.parse(end);
-            String formattedDate_end = targetFormat.format(date2);
-
-            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
-                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'On a bicycle'", null);
-
-            res.moveToFirst();
-
-            while(!res.isAfterLast()){
-
-                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-                LatLng pair = new LatLng(lati, lngi);
-                array_list.add(pair);
-                res.moveToNext();
-
-            }
-            res.close();
-            return array_list;
-
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    public ArrayList<LatLng> getAllOnFootDatePeriod(String start, String end)
-    {
-        ArrayList<LatLng> array_list = new ArrayList<LatLng>();
-
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        try {
-            DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
-            DateFormat targetFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            Date date = originalFormat.parse(start);
-            String formattedDate_start = targetFormat.format(date);
-
-            Date date2 = originalFormat.parse(end);
-            String formattedDate_end = targetFormat.format(date2);
-
-            Cursor res =  db.rawQuery("select * from TRACKPOINTS where time between '"
-                    + formattedDate_start + "' and '" + formattedDate_end+"' AND activity="+"'On foot'", null);
-
-            res.moveToFirst();
-
-            while(!res.isAfterLast()){
-
-                double lati = res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LAT));
-                double lngi =  res.getDouble(res.getColumnIndex(TRACKPOINTS_COLUMN_LON));
-                LatLng pair = new LatLng(lati, lngi);
-                array_list.add(pair);
-                res.moveToNext();
-
-            }
-            res.close();
-            return array_list;
-
-        } catch (ParseException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-    /*public void update(){
-        SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("UPDATE TRACKPOINTS SET time='2016-04-02 14:32:15'");
-    }*/
 }

@@ -2,13 +2,13 @@ package com.example.stef.gpstracker;
 
 /**
  * Copyright 2014 Google Inc. All Rights Reserved.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,46 +60,15 @@ public class DetectedActivitiesIntentService extends IntentService {
         ActivityRecognitionResult result = ActivityRecognitionResult.extractResult(intent);
         Intent localIntent = new Intent(Constants.BROADCAST_ACTION);
 
-        System.out.println(result.hasResult(intent));
-
         DetectedActivity mostProbableActivity = result.getMostProbableActivity();
-
-        System.out.println("activity service:" + mostProbableActivity);
 
         // Get the confidence % (probability)
         int confidence = mostProbableActivity.getConfidence();
 
         // Get the type
         int activityType = mostProbableActivity.getType();
-           /* types:
-            * DetectedActivity.IN_VEHICLE
-            * DetectedActivity.ON_BICYCLE
-            * DetectedActivity.ON_FOOT
-            * DetectedActivity.STILL
-            * DetectedActivity.UNKNOWN
-            * DetectedActivity.TILTING
-            */
 
-        /*if(
-            // If the current type is "moving" i.e on foot, bicycle or vehicle
-                isMoving(activityType)
-                        &&
-                        // The activity has changed from the previous activity
-                        activityChanged(activityType)
-                        // The confidence level for the current activity is >= 50%
-                        && (confidence >= 50)) {
-
-            // do something useful
-        }*/
-
-        // Log each activity.
-        /*Log.i(TAG, "activities detected");
-        for (DetectedActivity da: detectedActivities) {
-            Log.i(TAG, Constants.getActivityString(
-                            getApplicationContext(),
-                            da.getType()) + " " + da.getConfidence() + "%"
-            );
-        }*/
+        System.out.println("Activity service says: "  + activityType + "is most probable with: " + confidence);
 
         // Broadcast the list of detected activities.
         localIntent.putExtra(Constants.ACTIVITY_EXTRA, mostProbableActivity);
