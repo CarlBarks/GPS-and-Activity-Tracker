@@ -1,5 +1,5 @@
 # only committed once, protect API key
-app/src/AndroidManifest.xml
+#app/src/AndroidManifest.xml
 
 # Built application files
 *.apk

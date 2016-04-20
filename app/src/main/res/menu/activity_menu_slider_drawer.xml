@@ -4,15 +4,15 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_all"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/ic_calendar_multiple"
             android:title="All time" />
         <item
             android:id="@+id/nav_today"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/ic_calendar_today"
             android:title="Today" />
         <item
             android:id="@+id/nav_picker"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/ic_calendar_text"
             android:title="Choose a time period" />
         <!--<item
             android:id="@+id/nav_3_days"

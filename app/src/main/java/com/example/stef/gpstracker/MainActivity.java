@@ -1,11 +1,15 @@
 package com.example.stef.gpstracker;
-
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.AsyncTask;
 import android.os.Build;
+import android.os.PowerManager;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -23,8 +27,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 
 import android.location.Location;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.text.DateFormat;
@@ -34,6 +40,7 @@ import java.util.Date;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.TileOverlay;
 import com.google.android.gms.maps.model.TileOverlayOptions;
@@ -57,8 +64,7 @@ import android.view.MenuItem;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Random;
 
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -70,19 +76,21 @@ public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener, DatePickerDialog.OnDateSetListener {
 
     protected static final String TAG = "MainActivity";
+    public static final  int MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
 
-    private String datepickedstart = "";
-    private String datepickedend = "";
+    private String datepickedstart="";
+    private String datepickedend="";
 
     private int selected_item;
-    private String selected_dates = "Choose a time period";
+    private String selected_dates="Choose a time period";
 
     private GoogleMap mMap;
+    private Marker marker;
     private HeatmapTileProvider mProvider;
     private TileOverlay mOverlay;
 
-    private String activity_type = "Uninitialized";
-    private String mLastactivity_type = "Uninitialized";
+    private String activity_type="Uninitialized";
+    private String mLastactivity_type="Uninitialized";
 
     DBHelper mydb; //My app's Database
     protected GoogleApiClient mGoogleApiClient; /* Provides the entry point to Google Play services.*/
@@ -92,12 +100,15 @@ public class MainActivity extends AppCompatActivity implements
     protected long mTimeOfLastLocationEvent;
     public double lat; //Latitude variable
     public double lon; //Longitude variable
+    public ArrayList<LatLng> locationlist = new ArrayList<LatLng>();
 
     /**
      * A receiver for DetectedActivity objects broadcast by the
      * {@code ActivityDetectionIntentService}.
      */
     protected ActivityDetectionBroadcastReceiver mBroadcastReceiver;
+    private BroadcastReceiver mDozeModeReceiver;
+    protected BroadcastReceiver bre;
     /**
      * The DetectedActivities that we track in this sample. We use this for initializing the
      * {@code DetectedActivitiesAdapter}. We also use this for persisting state in
@@ -126,20 +137,34 @@ public class MainActivity extends AppCompatActivity implements
     private FloatingActionButton fab_foot;
     private FloatingActionButton fab_all;
 
-    private String mode = "All";
-    private String time_mode = "All";
+    private TextView mode_textview;
+    private DrawerLayout drawer;
+
+    private String mode="All";
+    private String time_mode="All Time";
 
     private NavigationView navigationView;
+
+    private PowerManager pm;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //setContentView(R.layout.activity_main);
+        //setContentView(R.layout.activity_maps);
 
         setContentView(R.layout.activity_menu_slider);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        mode_textview = (TextView) findViewById(R.id.current_mode_textview);
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mode_textview.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v)
+            {
+                drawer.openDrawer(GravityCompat.START);
+            }
+        });
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.setDrawerListener(toggle);
@@ -147,6 +172,8 @@ public class MainActivity extends AppCompatActivity implements
 
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        //getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         final FloatingActionMenu menu = (FloatingActionMenu) findViewById(R.id.menu);
 
@@ -180,9 +207,21 @@ public class MainActivity extends AppCompatActivity implements
         fab_all.setOnClickListener(clickListener);
 
         updateValuesFromBundle(savedInstanceState);
+
+        if (time_mode.equals("Date Picked")) {
+            mode_textview.setText(selected_dates);
+            mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_text, 0, 0, 0);
+        }else{
+            if(time_mode.equals("All Time")){
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_multiple, 0, 0, 0);
+            } else if(time_mode.equals("Today")){
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_today, 0, 0, 0);
+            }
+            mode_textview.setText(time_mode);
+        }
         MenuItem selected3 = navigationView.getMenu().getItem(2);
         selected3.setTitle(selected_dates);
-        if(time_mode.equals("All")){
+        if(time_mode.equals("All Time")){
             MenuItem selected = navigationView.getMenu().getItem(0);
             selected.setChecked(true);
         } else if(time_mode.equals("Today")){
@@ -192,6 +231,7 @@ public class MainActivity extends AppCompatActivity implements
             selected3.setChecked(true);
         }
 
+
         mydb = new DBHelper(this);
 
         // Get a receiver for broadcasts from ActivityDetectionIntentService.
@@ -200,113 +240,177 @@ public class MainActivity extends AppCompatActivity implements
         LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
                 new IntentFilter(Constants.BROADCAST_ACTION));
 
+
+        //Set a receiver for Doze power-state changes
+        IntentFilter filter_doze = new IntentFilter(pm.ACTION_DEVICE_IDLE_MODE_CHANGED);
+        filter_doze.addAction(pm.ACTION_DEVICE_IDLE_MODE_CHANGED);
+        mDozeModeReceiver = new DozeBroadcastReceiver();
+        registerReceiver(mDozeModeReceiver, filter_doze);
+
+        //Set a receiver for Screen-On events
+        IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+        filter.addAction(Intent.ACTION_SCREEN_ON);
+        bre = new ScreenBroadcaster();
+        registerReceiver(bre, filter);
+
+        pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+
         buildGoogleApiClient();
-    }
-
-    private boolean getPointsAndSetGradient(boolean update) {
-        String text;
-        ArrayList<LatLng> list = new ArrayList<LatLng>();
-
-        // get points from DB
-        if (time_mode.equals("All")) {
-            list = mydb.getAllPoints(mode);
-        } else if (time_mode.equals("Today")) {
-            list = mydb.getAllPointsToday(mode);
-        } else if (time_mode.equals("Date Picked")) {
-            list = mydb.getAllPointsDatePeriod(mode, datepickedstart + " 00:00:00", datepickedend + " 23:59:59");
+        if (!mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.connect();
         }
 
-        // Set gradient attributes according to mode if points returned
-        if (!list.isEmpty()) {
-
-            // All activities
-            int[] colors = new int[] {
-                    Color.rgb(102, 225, 0), // green
-                    Color.rgb(255, 0, 0)    // red
-            };
-
-            float[] startPoints = new float[] {
-                    0.2f, 1f
-            };
-
-            // or other activities
-            if (mode.equals("Vehicle")) {
-                colors = new int[] {
-                        Color.rgb(190, 60, 125),
-                        Color.rgb(86, 16, 80),
-                        Color.rgb(53, 1, 63)
-                };
-
-                startPoints = new float[] {
-                        0.2f, 0.8f, 1f
-                };
-            } else if (mode.equals("Foot")) {
-                colors = new int[] {
-                        Color.rgb(239, 172, 42),
-                        Color.rgb(245, 130, 125),
-                        Color.rgb(250, 70, 60)
-                };
-
-                startPoints = new float[] {
-                        0.2f, 0.6f, 1f
-                };
-            } else if (mode.equals("Bike")) {
-                colors = new int[] {
-                        Color.rgb(58, 163, 193),
-                        Color.rgb(40, 57, 150),
-                        Color.rgb(38, 9, 128)
-                };
-
-                startPoints = new float[] {
-                        0.2f, 0.8f, 1f
-                };
-            }
-            Gradient gradient = new Gradient(colors, startPoints);
-            if (update) {
-                mProvider.setGradient(gradient);
-                mProvider.setData(list);
-                mOverlay.clearTileCache();
-            } else {
-                // Create a heat map tile provider, passing it the latlngs of the recorded points.
-                mProvider = new HeatmapTileProvider.Builder()
-                        .data(list)
-                        .build();
-                mProvider.setGradient(gradient);
-                // Add a tile overlay to the map, using the heat map tile provider.
-                mOverlay = mMap.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
-            }
-            return true;
-        } else {
-            if (mode.equals("All")) {
-                text = "You have nothing recorded yet!";
-            } else if (mode.equals("Foot")) {
-                text = "You have walking or running activity recorded yet!";
-            } else {
-                text = "You have no " + mode.toLowerCase() + " activity recorded yet!";
-            }
-            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
-            return false;
-        }
     }
 
     private View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            String text = "";
+
             switch (v.getId()) {
                 case R.id.menu_item_vehicle:
-                    mode = "Vehicle";
+                    ArrayList<LatLng> list = null;
+                    if (time_mode.equals("All Time")) {
+                        list = mydb.getAllVehicles();
+                    } else if (time_mode.equals("Today")){
+                        list = mydb.getAllVehiclesToday();
+                    } else if (time_mode.equals("Date Picked")){
+                        list = mydb.getAllOnVehicleDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+                    }
+                    if (!list.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_vehicle = {
+                                Color.rgb(190,60,125),
+                                Color.rgb(86,16,80),
+                                Color.rgb(53,1,63)
+                        };
+
+                        float[] startPoints_vehicle = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        Gradient gradient_vehicle = new Gradient(colors_vehicle, startPoints_vehicle);
+
+                        mProvider.setGradient(gradient_vehicle);
+
+                        mProvider.setData(list);
+                        mOverlay.clearTileCache();
+                        mode="Vehicle";
+                    }
+                    else{
+                        text="You have no vehicle activity recorded yet!";
+                    }
                     break;
                 case R.id.menu_item_bike:
-                    mode = "Bike";
+                    ArrayList<LatLng> list2 = null;
+                    if (time_mode.equals("All Time")) {
+                        list2 =  mydb.getAllOnBike();
+                    } else if (time_mode.equals("Today")){
+                        list2 = mydb.getAllOnBikeToday();
+                    } else if (time_mode.equals("Date Picked")){
+                        list2  = mydb.getAllOnBikeDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
+                    }
+                    if (!list2.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_bike = {
+                                Color.rgb(58,163,193),
+                                Color.rgb(40,57,150),
+                                Color.rgb(38,9,128)
+                        };
+
+                        float[] startPoints_bike = {
+                                0.2f, 0.8f, 1f
+                        };
+
+                        Gradient gradient_bike = new Gradient(colors_bike, startPoints_bike);
+
+                        mProvider.setData(list2);
+                        mProvider.setGradient(gradient_bike);
+                        mOverlay.clearTileCache();
+
+                        mode="Bike";
+
+                    }
+                    else{
+                        text="You have no bike activity recorded yet!";
+                    }
                     break;
                 case R.id.menu_item_foot:
-                    mode = "Foot";
+                    ArrayList<LatLng> list3 = null;
+                    if (time_mode.equals("All Time")) {
+                        list3 =  mydb.getAllOnFoot();
+                    } else if (time_mode.equals("Today")){
+                        list3 = mydb.getAllOnFootToday();
+                    } else if (time_mode.equals("Date Picked")) {
+                        list3 = mydb.getAllOnFootDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
+                    }
+
+                    if (!list3.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_foot = {
+                                Color.rgb(239,172,42),
+                                Color.rgb(245,130,125),
+                                Color.rgb(250,70,60)
+                        };
+
+                        float[] startPoints_foot = {
+                                0.2f, 0.6f, 1f
+                        };
+
+                        Gradient gradient_foot = new Gradient(colors_foot, startPoints_foot);
+
+                        mProvider.setGradient(gradient_foot);
+                        mProvider.setData(list3);
+                        mOverlay.clearTileCache();
+                        mode="Foot";
+                    }
+                    else{
+                        text="You have no walking or running activity recorded yet!";
+                    }
                     break;
                 case R.id.menu_item_all:
-                    mode = "All";
+
+                    ArrayList<LatLng> list_all = null;
+                    if (time_mode.equals("All Time")) {
+                        list_all = mydb.getAllPoints();
+                    } else if (time_mode.equals("Today")){
+                        list_all = mydb.getAllPointsToday();
+                    } else if (time_mode.equals("Date Picked")) {
+                        list_all = mydb.getAllPointsDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
+                    }
+                    if (!list_all.isEmpty()) {
+
+                        // Create the gradient.
+                        int[] colors_all = {
+                                Color.rgb(102, 225, 0), // green
+                                Color.rgb(255, 0, 0)    // red
+                        };
+
+                        float[] startPoints_all = {
+                                0.2f, 1f
+                        };
+
+                        Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                        mProvider.setGradient(gradient_all);
+
+                        mProvider.setData(list_all);
+                        mOverlay.clearTileCache();
+
+                        mode="All";
+
+                    }else{
+                        text=text+"You have no points recorded yet!";
+                    }
                     break;
             }
-            getPointsAndSetGradient(true);
+
+            if (!text.equals("")){
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
         }
     };
 
@@ -315,10 +419,11 @@ public class MainActivity extends AppCompatActivity implements
         mMap = googleMap;
 
         // Add a marker and move the camera.
-        LatLng currentmarker = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(currentmarker).title("Current Marker"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentmarker, 12));
-        getPointsAndSetGradient(false);
+        LatLng currentposition=new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        MarkerOptions currentmarker = new MarkerOptions().position(currentposition).title("Current Location");
+        marker = mMap.addMarker(currentmarker);
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentposition, 12));
+        addHeatMap(mMap);
     }
 
     /**
@@ -337,9 +442,10 @@ public class MainActivity extends AppCompatActivity implements
         savedInstanceState.putBoolean(REQUESTING_LOCATION_UPDATES_KEY,
                 true);
         savedInstanceState.putParcelable(LOCATION_KEY, mCurrentLocation);
-        try {
+        try{
             savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mCurrentLocation.getTime());
-        } catch (NullPointerException e) {
+        }
+        catch (NullPointerException e){
             savedInstanceState.putLong(LAST_UPDATED_TIME_STRING_KEY, mTimeOfLastLocationEvent);
         }
         savedInstanceState.putString(Constants.DETECTED_ACTIVITIES, activity_type);
@@ -347,6 +453,8 @@ public class MainActivity extends AppCompatActivity implements
         savedInstanceState.putString("time mode", time_mode);
         savedInstanceState.putInt("selected", selected_item);
         savedInstanceState.putString("selected dates", selected_dates);
+        savedInstanceState.putString("datepickedstart", datepickedstart);
+        savedInstanceState.putString("datepickedend", datepickedend);
         super.onSaveInstanceState(savedInstanceState);
     }
 
@@ -383,15 +491,20 @@ public class MainActivity extends AppCompatActivity implements
                         LAST_UPDATED_TIME_STRING_KEY);
             }
 
-            if (savedInstanceState != null) {
+            if (savedInstanceState != null ) {
                 mode = savedInstanceState.getString("mode");
                 time_mode = savedInstanceState.getString("time mode");
                 selected_item = savedInstanceState.getInt("selected");
-                selected_dates = savedInstanceState.getString("selected dates");
+                selected_dates =savedInstanceState.getString("selected dates");
+                datepickedstart =savedInstanceState.getString("datepickedstart");
+                datepickedend =savedInstanceState.getString("datepickedend");
             } else {
                 mode = "All";
-                time_mode = "All";
+                time_mode = "All Time";
+                mode_textview.setText(time_mode);
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_multiple, 0, 0, 0);
             }
+            //updateUI();
         }
     }
 
@@ -404,6 +517,9 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onStop() {
         super.onStop();
+        /*if (mGoogleApiClient.isConnected()) {
+            mGoogleApiClient.disconnect();
+        }*/
     }
 
     @Override
@@ -411,31 +527,115 @@ public class MainActivity extends AppCompatActivity implements
         super.onResume();
 
         DatePickerDialog dpd = (DatePickerDialog) getFragmentManager().findFragmentByTag("Datepickerdialog");
-        if (dpd != null) dpd.setOnDateSetListener(this);
+        if(dpd != null) dpd.setOnDateSetListener(this);
 
         // we resume receiving location updates
         if (mGoogleApiClient.isConnected()) {
             // Register the broadcast receiver that informs this activity of the DetectedActivity
             // object broadcast sent by the intent service.
+            if (mBroadcastReceiver==null) {
+                LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                        new IntentFilter(Constants.BROADCAST_ACTION));
+            }
+            startLocationUpdates();
+
+            if (bre == null) {
+                //Set a receiver for Screen-On events
+                IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+                filter.addAction(Intent.ACTION_SCREEN_ON);
+                bre = new ScreenBroadcaster();
+                registerReceiver(bre, filter);
+            }
+
+        }
+        else{
+            mGoogleApiClient.connect();
+            // Register the broadcast receiver that informs this activity of the DetectedActivity
+            // object broadcast sent by the intent service.
+            if (mBroadcastReceiver==null) {
+                LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                        new IntentFilter(Constants.BROADCAST_ACTION));
+            }
+
+            if (bre == null) {
+                //Set a receiver for Screen-On events
+                IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+                filter.addAction(Intent.ACTION_SCREEN_ON);
+                bre = new ScreenBroadcaster();
+                registerReceiver(bre, filter);
+            }
+
+        }
+
+    }
+
+    @Override
+    public void onRestart() {
+        super.onRestart();
+
+        DatePickerDialog dpd = (DatePickerDialog) getFragmentManager().findFragmentByTag("Datepickerdialog");
+        if(dpd != null) dpd.setOnDateSetListener(this);
+
+        // we resume receiving location updates
+        if (mGoogleApiClient.isConnected()) {
+            // Register the broadcast receiver that informs this activity of the DetectedActivity
+            // object broadcast sent by the intent service.
+            if (mBroadcastReceiver==null) {
+                LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                        new IntentFilter(Constants.BROADCAST_ACTION));
+            }
+
+            if (bre == null) {
+                //Set a receiver for Screen-On events
+                IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+                filter.addAction(Intent.ACTION_SCREEN_ON);
+                bre = new ScreenBroadcaster();
+                registerReceiver(bre, filter);
+            }
+
+            startLocationUpdates();
+        }
+        else{
+            mGoogleApiClient.connect();
+            // Register the broadcast receiver that informs this activity of the DetectedActivity
+            // object broadcast sent by the intent service.
             LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
                     new IntentFilter(Constants.BROADCAST_ACTION));
+
+            if (bre == null) {
+                //Set a receiver for Screen-On events
+                IntentFilter filter = new IntentFilter(Intent.ACTION_SCREEN_OFF);
+                filter.addAction(Intent.ACTION_SCREEN_ON);
+                bre = new ScreenBroadcaster();
+                registerReceiver(bre, filter);
+            }
+
             startLocationUpdates();
-        } else {
-            mGoogleApiClient.connect();
         }
+
     }
 
     @Override
     protected void onPause() {
         super.onPause();
+        // Stop location updates to save battery, but don't disconnect the GoogleApiClient object.
+        /*if (mGoogleApiClient.isConnected()) {
+            stopLocationUpdates();
+        }*/
 
-        ArrayList<String> l_activity = mydb.getAllPointsActivity();
-        ArrayList<String> l_time = mydb.getAllPointsTime();
-        if (!l_activity.isEmpty()) {
-            if (l_activity.size() > 100) {
+        // Unregister the broadcast receiver that was registered during onResume().
+        //LocalBroadcastManager.getInstance(this).unregisterReceiver(mBroadcastReceiver);
+
+        //unregisterReceiver(mDozeModeReceiver);
+        //unregisterReceiver(bre);
+
+        ArrayList<String> l2 = mydb.getAllPointsActivity();
+        ArrayList<String> l3 = mydb.getAllPointsTime();
+        if (!l2.isEmpty()) {
+            if (l2.size() > 100) {
 
                 for (int i = 1; i < 100; i++) {
-                    System.out.println((l_activity.get(l_activity.size() - i)) + "  " + (l_time.get(l_time.size() - i)));
+                    System.out.println((l2.get(l2.size() - i)) + "  " + (l3.get(l3.size() - i)));
                 }
             } else {
                 System.out.println("List is empty or smaller than 100");
@@ -444,8 +644,10 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onDestroy() {
+    public void onDestroy(){
         super.onDestroy();
+        //unregisterReceiver(mBroadcastReceiver);
+        //unregisterReceiver(bre);
         mydb.close();
     }
 
@@ -485,12 +687,25 @@ public class MainActivity extends AppCompatActivity implements
                             getActivityDetectionPendingIntent()
                     ).setResultCallback(this);
 
+                    if (mBroadcastReceiver==null) {
+                        LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                                new IntentFilter(Constants.BROADCAST_ACTION));
+                    }
+
                 } else {
                     Toast.makeText(this, R.string.no_location_detected, Toast.LENGTH_LONG).show();
                 }
 
+            }else {
+
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION,android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+
             }
-        } else {
+        }
+        else{
             createLocationRequest();
             //get information from location service
             mCurrentLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
@@ -511,10 +726,19 @@ public class MainActivity extends AppCompatActivity implements
                         getActivityDetectionPendingIntent()
                 ).setResultCallback(this);
 
+                if (mBroadcastReceiver==null) {
+                    LocalBroadcastManager.getInstance(this).registerReceiver(mBroadcastReceiver,
+                            new IntentFilter(Constants.BROADCAST_ACTION));
+                }
+
             } else {
                 Toast.makeText(this, R.string.no_location_detected, Toast.LENGTH_LONG).show();
             }
+
         }
+
+        //startLocationUpdates();
+
     }
 
     protected void createLocationRequest() {
@@ -555,9 +779,9 @@ public class MainActivity extends AppCompatActivity implements
 
         // Sets the fastest rate for active location updates. This interval is exact, and your
         // application will never receive updates faster than this value.
-        mLocationRequest.setFastestInterval(interval / 2);
+        mLocationRequest.setFastestInterval(interval / 3);
 
-        //mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         //restart location updates with the new interval
         startLocationUpdates();
@@ -568,103 +792,121 @@ public class MainActivity extends AppCompatActivity implements
      */
     @Override
     public void onLocationChanged(Location location) {
-        if ((location != mCurrentLocation) || (location.getTime() - mTimeOfLastLocationEvent >= 60000)) {
+        if((location!=mCurrentLocation) || (location.getTime()-mTimeOfLastLocationEvent>=60000)) {
             mCurrentLocation = location;
             lat = mCurrentLocation.getLatitude();
             lon = mCurrentLocation.getLongitude();
 
             SimpleDateFormat originalFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+            Calendar c = Calendar.getInstance();
             Date date = new Date();
             mCurrentTime = originalFormat.format(date);
 
             if (!activity_type.equals("Uninitialized")) {
-                switch (activity_type) {
+                switch( activity_type ) {
                     case "In a vehicle": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat,lon));
                         }
                         break;
                     }
                     case "On a bicycle": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                     case "On foot": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                     case "Running": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                     case "Still": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if (mLastactivity_type.equals("Still")) {
-                            if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000 * 30) {
+                        if (mLastactivity_type.equals("Still")){
+                            if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000*30){
                                 //be sure to store the time of receiving this event !
                                 mTimeOfLastLocationEvent = location.getTime();
                                 mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                                marker.setPosition(new LatLng(lat, lon));
                             }
-                        } else {
-                            mTimeOfLastLocationEvent = location.getTime();
-                            mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                        }
+                        else{
+                            if ((location.getTime() - mTimeOfLastLocationEvent) >= 10000) {
+                                mTimeOfLastLocationEvent = location.getTime();
+                                mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                                marker.setPosition(new LatLng(lat, lon));
+                            }
                         }
                         break;
                     }
                     case "Tilting": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000 * 15) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 60000*15){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                     case "Walking": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 30000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 20000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                     case "Unknown activity": {
                         //ensure that we don't get a lot of events
                         // or if enabled, only get more accurate events within mTimeBetweenLocationEvents
-                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 30000) {
+                        if ((location.getTime() - mTimeOfLastLocationEvent) >= 30000){
                             //be sure to store the time of receiving this event !
                             mTimeOfLastLocationEvent = location.getTime();
                             mydb.insertTrackpoint(lat, lon, mCurrentTime, activity_type);
+                            marker.setPosition(new LatLng(lat, lon));
                         }
                         break;
                     }
                 }
+
+                //locationlist.add(new LatLng(lat, lon));
+                //JSONFileWrite();
+
             }
         }
     }
@@ -675,13 +917,23 @@ public class MainActivity extends AppCompatActivity implements
     protected void startLocationUpdates() {
         // The final argument to {@code requestLocationUpdates()} is a LocationListener
         // (http://developer.android.com/reference/com/google/android/gms/location/LocationListener.html).
-        // check build version on phone
+        //check build version on phone
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             //check that app has permission to access data
             if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                 LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
             }
-        } else {
+            else {
+
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(this,
+                        new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION);
+
+            }
+
+            }
+        else{
             LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
         }
     }
@@ -704,6 +956,8 @@ public class MainActivity extends AppCompatActivity implements
         // Refer to the javadoc for ConnectionResult to see what error codes might be returned in
         // onConnectionFailed.
         Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = " + result.getErrorCode());
+        //Try to re-connect
+        mGoogleApiClient.connect();
     }
 
 
@@ -713,6 +967,119 @@ public class MainActivity extends AppCompatActivity implements
         // attempt to re-establish the connection.
         Log.i(TAG, "Connection suspended");
         mGoogleApiClient.connect();
+    }
+
+    private void addHeatMap(GoogleMap map) {
+        ArrayList<LatLng> list = new ArrayList<LatLng>();
+        Gradient gradient = null;
+        switch (mode){
+            case "All": {
+                if (time_mode.equals("All Time")) {
+                    list = mydb.getAllPoints();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllPointsToday();
+                } else if (time_mode.equals("Date Picked")){
+                    list = mydb.getAllPointsDatePeriod(datepickedstart+" 00:00:00 πμ", datepickedend+" 23:59:59 μμ");
+                }
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                gradient = new Gradient(colors_all, startPoints_all);
+                break;
+            }
+            case "Vehicle": {
+
+                if (time_mode.equals("All Time")) {
+                    list = mydb.getAllVehicles();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllVehiclesToday();
+                } else if (time_mode.equals("Date Picked")){
+                    list = mydb.getAllOnVehicleDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+                }
+
+                // Create the gradient.
+                int[] colors_vehicle = {
+                        Color.rgb(190,60,125),
+                        Color.rgb(86,16,80),
+                        Color.rgb(53,1,63)
+                };
+
+                float[] startPoints_vehicle = {
+                        0.2f, 0.8f, 1f
+                };
+
+                gradient = new Gradient(colors_vehicle, startPoints_vehicle);
+                break;
+            }
+            case "Bike": {
+                if (time_mode.equals("All Time")) {
+                    list = mydb.getAllOnBike();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllOnBikeToday();
+                }  else if (time_mode.equals("Date Picked")){
+                    list = mydb.getAllOnBikeDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+                }
+                // Create the gradient.
+                int[] colors_bike = {
+                        Color.rgb(58,163,193),
+                        Color.rgb(40,57,150),
+                        Color.rgb(38,9,128)
+                };
+
+                float[] startPoints_bike = {
+                        0.2f, 0.8f, 1f
+                };
+
+                gradient = new Gradient(colors_bike, startPoints_bike);
+
+                break;
+            }
+            case "Foot": {
+                if (time_mode.equals("All Time")) {
+                    list = mydb.getAllOnFoot();
+                } else if (time_mode.equals("Today")){
+                    list = mydb.getAllOnFootToday();
+                } else if (time_mode.equals("Date Picked")){
+                    list = mydb.getAllOnFootDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+                }
+                // Create the gradient.
+                int[] colors_foot = {
+                        Color.rgb(239,172,42),
+                        Color.rgb(245,130,125),
+                        Color.rgb(250,70,60)
+                };
+
+                float[] startPoints_foot = {
+                        0.2f, 0.6f, 1f
+                };
+
+                gradient = new Gradient(colors_foot, startPoints_foot);
+                break;
+            }
+        }
+
+        if (!list.isEmpty()) {
+            // Create a heat map tile provider, passing it the latlngs of the recorded points.
+            mProvider = new HeatmapTileProvider.Builder()
+                    .data(list)
+                    .build();
+            if (gradient!=null){
+                mProvider.setGradient(gradient);
+            }
+            // Add a tile overlay to the map, using the heat map tile provider.
+            mOverlay = map.addTileOverlay(new TileOverlayOptions().tileProvider(mProvider));
+        }else{
+            String text="You have no points recorded yet!";
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -725,58 +1092,114 @@ public class MainActivity extends AppCompatActivity implements
 
         @Override
         public void onReceive(Context context, Intent intent) {
+            System.out.println("Received the intent");
             DetectedActivity updatedActivity;
             Bundle extras =
                     intent.getExtras();
             System.out.println("Received the intent with extras:" + extras);
-            if (extras == null) {
-                mLastactivity_type = activity_type;
-                activity_type = null;
+            if(extras == null) {
+                updatedActivity= null;
+                mLastactivity_type=activity_type;
+                activity_type=null;
             } else {
-                updatedActivity = extras.getParcelable(Constants.ACTIVITY_EXTRA);
+                updatedActivity= extras.getParcelable(Constants.ACTIVITY_EXTRA);
                 int confidence = updatedActivity.getConfidence();
-                if (confidence > 70) {
-                    mLastactivity_type = activity_type;
+                if (confidence>60){
                     activity_type = Constants.getActivityString(context, updatedActivity.getType());
                     System.out.println(activity_type);
-                    switch (updatedActivity.getType()) {
+                    switch( updatedActivity.getType() ) {
                         case DetectedActivity.IN_VEHICLE: {
-                            updateLocationRequest(10000);
+                            if (!mLastactivity_type.equals("In a vehicle")) {
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "You are now in a vehicle." );
+                                builder.setSmallIcon(R.mipmap.ic_launcher);
+                                builder.setContentTitle(getString(R.string.app_name));
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                                updateLocationRequest(10000);
+                            }
                             break;
                         }
                         case DetectedActivity.ON_BICYCLE: {
-                            updateLocationRequest(10000);
+                            if (!mLastactivity_type.equals("On a bicycle")) {
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "You are now biking." );
+                                builder.setSmallIcon(R.mipmap.ic_launcher);
+                                builder.setContentTitle(getString(R.string.app_name));
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                                updateLocationRequest(10000);
+                            }
                             break;
                         }
                         case DetectedActivity.ON_FOOT: {
-                            updateLocationRequest(10000);
+                            if (!mLastactivity_type.equals("On foot")) {
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "You are now on foot." );
+                                builder.setSmallIcon(R.mipmap.ic_launcher);
+                                builder.setContentTitle(getString(R.string.app_name));
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                                updateLocationRequest(10000);
+                            }
                             break;
                         }
                         case DetectedActivity.RUNNING: {
-                            updateLocationRequest(10000);
+                            if (!mLastactivity_type.equals("Running")) {
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "You are now running." );
+                                builder.setSmallIcon(R.mipmap.ic_launcher);
+                                builder.setContentTitle(getString(R.string.app_name));
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                                updateLocationRequest(10000);
+                            }
                             break;
                         }
                         case DetectedActivity.STILL: {
-                            updateLocationRequest(30000 * 30);
+                            if (mLastactivity_type.equals("Still")) {
+                                updateLocationRequest(30000 * 30);
+                            }else{
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "Your phone is now Still" );
+                                builder.setSmallIcon( R.mipmap.ic_launcher );
+                                builder.setContentTitle( getString( R.string.app_name ) );
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                            }
                             break;
                         }
                         case DetectedActivity.TILTING: {
-                            updateLocationRequest(30000 * 30);
+                            if (mLastactivity_type.equals("Tilting")) {
+                                updateLocationRequest(30000 * 30);
+                            } else{
+                                mLastactivity_type=activity_type;
+                            }
                             break;
                         }
                         case DetectedActivity.WALKING: {
-                            updateLocationRequest(20000);
+                            if (!mLastactivity_type.equals("Walking")) {
+                                /*NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+                                builder.setContentText( "You are now walking." );
+                                builder.setSmallIcon(R.mipmap.ic_launcher);
+                                builder.setContentTitle(getString(R.string.app_name));
+                                NotificationManagerCompat.from(context).notify(0, builder.build());*/
+                                mLastactivity_type=activity_type;
+                                updateLocationRequest(20000);
+                            }
                             break;
                         }
                         case DetectedActivity.UNKNOWN: {
+                            mLastactivity_type=activity_type;
                             updateLocationRequest(20000);
                             break;
                         }
                     }
-                } else {
-                    mLastactivity_type = activity_type;
-                    activity_type = "Unknown activity";
-                    updateLocationRequest(30000);
+                }
+                else{
+                    mLastactivity_type=activity_type;
+                    activity_type="Unknown activity";
+                    updateLocationRequest(10000);
                 }
             }
         }
@@ -809,9 +1232,9 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     //For the Drawing Slider
+
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
@@ -841,26 +1264,85 @@ public class MainActivity extends AppCompatActivity implements
         return super.onOptionsItemSelected(item);
     }
 
+
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
+        String text = "";
         if (id == R.id.nav_all) {
+
             MenuItem selected = navigationView.getMenu().getItem(2);
             selected.setTitle("Choose a time period");
-            selected_dates = "Choose a time period";
-            mode = "All";
-            time_mode = "All";
-            getPointsAndSetGradient(true);
+            selected_dates="Choose a time period";
+
+            ArrayList<LatLng> l = mydb.getAllPoints();
+
+            if (!l.isEmpty()) {
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+                mProvider.setData(l);
+                mOverlay.clearTileCache();
+                mode="All";
+                time_mode="All Time";
+                mode_textview.setText(time_mode);
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_multiple, 0, 0, 0);
+
+            }else{
+                text=text+"You have no points recorded yet!";
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+
         } else if (id == R.id.nav_today) {
+
             MenuItem selected = navigationView.getMenu().getItem(2);
             selected.setTitle("Choose a time period");
-            selected_dates = "Choose a time period";
-            mode = "All";
-            time_mode = "Today";
-            getPointsAndSetGradient(true);
+            selected_dates="Choose a time period";
+
+            ArrayList<LatLng> l = mydb.getAllPointsToday();
+
+            if (!l.isEmpty()) {
+
+                // Create the gradient.
+                int[] colors_all = {
+                        Color.rgb(102, 225, 0), // green
+                        Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                        0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+
+                mProvider.setData(l);
+                mOverlay.clearTileCache();
+                mode="All";
+                time_mode="Today";
+                mode_textview.setText(time_mode);
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_today, 0, 0, 0);
+
+            }else{
+                text=text+"You have no points recorded yet!";
+                Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+            }
+
+
         } else if (id == R.id.nav_picker) {
             Calendar now = Calendar.getInstance();
             DatePickerDialog dpd = com.borax12.materialdaterangepicker.date.DatePickerDialog.newInstance(
@@ -870,15 +1352,15 @@ public class MainActivity extends AppCompatActivity implements
                     now.get(Calendar.DAY_OF_MONTH)
             );
             dpd.setAccentColor(R.attr.colorPrimary);
-            final MenuItem custom_item = item;
+            final MenuItem custom_item=item;
             dpd.setOnCancelListener(new DialogInterface.OnCancelListener() {
                 @Override
                 public void onCancel(DialogInterface dialogInterface) {
-                    if (time_mode.equals("All")) {
+                    if(time_mode.equals("All Time")){
                         MenuItem selected = navigationView.getMenu().getItem(0);
                         selected.setChecked(true);
                         custom_item.setChecked(false);
-                    } else if (time_mode.equals("Today")) {
+                    } else if(time_mode.equals("Today")){
                         MenuItem selected = navigationView.getMenu().getItem(1);
                         selected.setChecked(true);
                         custom_item.setChecked(false);
@@ -886,20 +1368,32 @@ public class MainActivity extends AppCompatActivity implements
                 }
             });
             dpd.show(getFragmentManager(), "Datepickerdialog");
-            selected_item = item.getItemId();
-        }
+            selected_item=item.getItemId();
 
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        }/*else if (id == R.id.nav_3_days) {
+            System.out.println("3 Days");
+        } else if (id == R.id.nav_week) {
+
+        } else if (id == R.id.nav_month) {
+
+        } else if (id == R.id.nav_search) {
+
+        } else if (id == R.id.nav_share) {
+
+        } else if (id == R.id.nav_send) {
+            System.out.println("send");
+        }*/
+
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
 
     @Override
-    public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth, int yearEnd, int monthOfYearEnd, int dayOfMonthEnd) {
+    public void onDateSet(DatePickerDialog view, int year, int monthOfYear, int dayOfMonth,int yearEnd, int monthOfYearEnd, int dayOfMonthEnd) {
         String date = "You picked the following date: From- " + dayOfMonth + "/" + (++monthOfYear) + "/" + year + " To " + dayOfMonthEnd + "/" + (++monthOfYearEnd) + "/" + yearEnd;
 
-        datepickedstart = "" + dayOfMonth + "/" + (monthOfYear) + "/" + year + "";
-        datepickedend = "" + dayOfMonthEnd + "/" + (monthOfYearEnd) + "/" + yearEnd + "";
+        datepickedstart=""+dayOfMonth+"/"+(monthOfYear)+"/"+year+"";
+        datepickedend=""+dayOfMonthEnd+"/"+(monthOfYearEnd)+"/"+yearEnd+"";
         try {
 
             DateFormat originalFormat = new SimpleDateFormat("dd/MM/yyyy");
@@ -909,37 +1403,127 @@ public class MainActivity extends AppCompatActivity implements
             Date current = new Date();
 
             MenuItem selected = navigationView.getMenu().getItem(2);
-            boolean success_points = false;
-            if ((!datepickedstart.equals("") && !datepickedend.equals("")) && (date2.after(date1))
+            ArrayList<LatLng> list_all;
+            list_all = mydb.getAllPointsDatePeriod(datepickedstart + " 00:00:00 πμ", datepickedend + " 23:59:59 μμ");
+            String text = "";
+            if ((!list_all.isEmpty()) && (!datepickedstart.equals("") && !datepickedend.equals("")) && (date2.after(date1))
                     && !(date1.after(current)) && !(date2.after(current))) {
 
                 selected_dates = datepickedstart + " - " + datepickedend;
                 selected.setTitle(selected_dates);
                 time_mode = "Date Picked";
-                mode = "All";
-                success_points = getPointsAndSetGradient(true);
-            } else {
-                // Check if days are valid and inform accordingly
-                if ((datepickedstart.equals("") | datepickedend.equals("")) | (date1.after(date2))
-                        | (date1.after(current)) | (date2.after(current))) {
-                    Toast.makeText(getApplicationContext(), "Wrong Input Dates!", Toast.LENGTH_SHORT).show();
-                }
-            }
+                mode_textview.setText(selected_dates);
+                mode_textview.setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_calendar_text, 0, 0, 0);
 
-            // if no gradient points in this time period
-            if (!success_points) {
-                if (time_mode.equals("All")) {
-                    MenuItem selected_item = navigationView.getMenu().getItem(0);
-                    selected_item.setChecked(true);
-                    selected.setChecked(false);
-                } else if (time_mode.equals("Today")) {
-                    MenuItem selected_item = navigationView.getMenu().getItem(1);
-                    selected_item.setChecked(true);
-                    selected.setChecked(false);
-                }
+                mode = "All";
+
+                // Create the gradient.
+                int[] colors_all = {
+                    Color.rgb(102, 225, 0), // green
+                    Color.rgb(255, 0, 0)    // red
+                };
+
+                float[] startPoints_all = {
+                    0.2f, 1f
+                };
+
+                Gradient gradient_all = new Gradient(colors_all, startPoints_all);
+
+                mProvider.setGradient(gradient_all);
+                mProvider.setData(list_all);
+                mOverlay.clearTileCache();
+                mode = "All";
+
+         } else {
+            //Check if days are valid and inform accordingly
+            if ((datepickedstart.equals("") | datepickedend.equals("")) | (date1.after(date2))
+                    | (date1.after(current)) | (date2.after(current))){
+                text = text + "Wrong Input Dates!";
+
+            }else{
+                //else it means the database was empty for these dates
+                text = text + "You have no points recorded in this period!";
             }
-        } catch (ParseException e) {
+         }
+
+        if (!text.equals("")) {
+            if (time_mode.equals("All Time")) {
+                MenuItem selected_item = navigationView.getMenu().getItem(0);
+                selected_item.setChecked(true);
+                selected.setChecked(false);
+            } else if (time_mode.equals("Today")) {
+                MenuItem selected_item = navigationView.getMenu().getItem(1);
+                selected_item.setChecked(true);
+                selected.setChecked(false);
+            }
+            Toast.makeText(getApplicationContext(), text, Toast.LENGTH_SHORT).show();
+        }
+        }catch (ParseException e){
             System.out.println(e);
         }
+
     }
+
+    //BroadcastReceiver that catches the ACTION_SCREEN_ON broadcast action
+    public class DozeBroadcastReceiver extends BroadcastReceiver {
+        @TargetApi(23)
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.e(TAG, intent.toString());
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (Build.VERSION.SDK_INT >= (Build.VERSION_CODES.M)) {
+                if (pm.isDeviceIdleMode()) {
+                    System.out.println("Doze ON!");
+                    Log.e(TAG, "Device on Doze Mode");
+                } else {
+                    System.out.println("Doze OFF!");
+                    Log.d(TAG, "Device on Active Mode");
+
+                    // we resume receiving location updates
+                    if (!mGoogleApiClient.isConnected()) {
+                        System.out.println("I am not connected!");
+                        mGoogleApiClient.connect();
+                        // Register the broadcast receiver that informs this activity of the DetectedActivity
+                        // object broadcast sent by the intent service.
+                        if (mBroadcastReceiver==null) {
+                            LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
+                                    new IntentFilter(Constants.BROADCAST_ACTION));
+                        }
+                    }
+
+                }
+            }
+        }
+    }
+
+    //BroadcastReceiver that catches the ACTION_SCREEN_ON broadcast action
+    public class ScreenBroadcaster extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Intent.ACTION_SCREEN_ON)) {
+
+                System.out.println("Screen was turned ON!");
+
+                if (mBroadcastReceiver==null) {
+                    LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
+                            new IntentFilter(Constants.BROADCAST_ACTION));
+                }
+
+                // we resume receiving location updates
+                if (!mGoogleApiClient.isConnected()) {
+                    System.out.println("I am not connected!");
+                    mGoogleApiClient.connect();
+                    // Register the broadcast receiver that informs this activity of the DetectedActivity
+                    // object broadcast sent by the intent service.
+                    if (mBroadcastReceiver==null) {
+                        LocalBroadcastManager.getInstance(context).registerReceiver(mBroadcastReceiver,
+                                new IntentFilter(Constants.BROADCAST_ACTION));
+                    }
+                }
+
+            }
+        }
+    }
+
 }
